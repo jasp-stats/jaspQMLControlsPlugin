@@ -1,0 +1,4 @@
+*.o
+CMakeLists.txt.user
+appdirs.h
+.DS_Stare

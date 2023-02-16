@@ -24,14 +24,14 @@
 #include "utilities/qutils.h"
 #include "controls/tableviewbase.h"
 #include "controls/textinputbase.h"
-#include "preferencesmodelbase.h"
+#include "utilities/desktopcommunicator.h"
 
 using namespace std;
 
 ListModelTableViewBase::ListModelTableViewBase(TableViewBase * tableView)
 	: ListModel(tableView), _tableView(tableView)
 {
-	connect(PreferencesModelBase::prefs(),	&PreferencesModelBase::uiScaleChanged,	this,	&ListModelTableViewBase::refresh);
+	connect(DesktopCommunicator::singleton(),	&DesktopCommunicator::uiScaleChanged,	this,	&ListModelTableViewBase::refresh);
 }
 
 QVariant ListModelTableViewBase::data(const QModelIndex &index, int role) const
@@ -177,6 +177,79 @@ void ListModelTableViewBase::removeRow(size_t row, bool emitStuff)
 		endResetModel();
 
 		emit rowCountChanged();
+	}
+}
+
+void ListModelTableViewBase::setSize(int rows, int columns, bool emitStuff)
+{
+	if (emitStuff)
+		beginResetModel();
+
+	bool rowsChanged = false;
+	if (rows > -1)
+	{
+		if (rows < rowCount())
+		{
+			for (QVector<QVariant> & value : _tableTerms.values)
+				value.erase(value.begin() + rows, value.end());
+			_tableTerms.rowNames.erase(_tableTerms.rowNames.begin() + rows, _tableTerms.rowNames.end());
+
+			rowsChanged = true;
+		}
+		else if (rows > rowCount())
+		{
+			size_t oldRowCount = rowCount();
+			for (int i = 0; i < rows - oldRowCount; i++)
+			{
+				_tableTerms.rowNames.push_back(getDefaultRowName(rowCount()));
+				int colIndex = 0;
+				for (QVector<QVariant> & value : _tableTerms.values)
+				{
+					while (value.size() < _tableTerms.rowNames.size())
+						value.push_back(_tableView->defaultValue(colIndex, value.length()));
+					colIndex++;
+				}
+			}
+
+			rowsChanged = true;
+		}
+	}
+
+	bool columnsChanged = false;
+	if (columns > -1)
+	{
+		if (columns < columnCount())
+		{
+			_tableTerms.values.erase(_tableTerms.values.begin() + columns, _tableTerms.values.end());
+			_tableTerms.colNames.erase(_tableTerms.colNames.begin() + columns, _tableTerms.colNames.end());
+
+			columnsChanged = true;
+		}
+		else if (columns > columnCount())
+		{
+			size_t oldColumnCount = columnCount();
+			for (int i = 0; i < columns - oldColumnCount; i++)
+			{
+				_tableTerms.colNames.push_back(getDefaultColName(columnCount()));
+				QVector<QVariant> values;
+				for (int rowIndex = 0; rowIndex < _tableTerms.rowNames.length(); rowIndex++)
+					values.push_back(_tableView->defaultValue(columnCount(), rowIndex));
+				_tableTerms.values.push_back(values);
+			}
+
+			columnsChanged = true;
+		}
+	}
+
+	if (emitStuff)
+	{
+		endResetModel();
+
+		if (columnsChanged)
+			emit columnCountChanged();
+
+		if (rowsChanged)
+			emit rowCountChanged();
 	}
 }
 

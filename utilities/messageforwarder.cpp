@@ -1,11 +1,12 @@
 #include "messageforwarder.h"
+#include "utilities/desktopcommunicator.h"
 #include <QMessageBox>
+#include <QPushButton>
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QRegularExpression>
 #include <QString>
 #include "qutils.h"
-#include "settings.h"
 #include "appdirs.h"
 #include "log.h"
 
@@ -24,6 +25,11 @@ void MessageForwarder::log(QString msg)
 	Log::log() << msg << std::endl;
 }
 
+bool MessageForwarder::useNativeFileDialogs()
+{
+	return DesktopCommunicator::singleton()->useNativeFileDialog();
+}
+
 MessageForwarder * MessageForwarder::_singleton = nullptr;
 
 void MessageForwarder::showWarning(QString title, QString message)
@@ -36,12 +42,13 @@ bool MessageForwarder::showYesNo(QString title, QString message, QString YesButt
 	if(YesButtonText == "")		YesButtonText	= tr("Yes");
 	if(NoButtonText == "")		NoButtonText	= tr("No");
 
-	QMessageBox box(QMessageBox::Question, title, message,  QMessageBox::Yes | QMessageBox::No);
+	QMessageBox box(QMessageBox::Question, title, message);
 
-	box.setButtonText(QMessageBox::Yes,		YesButtonText);
-	box.setButtonText(QMessageBox::No,		NoButtonText);
+	QPushButton* yesButton =	box.addButton(YesButtonText,	QMessageBox::ButtonRole::YesRole);
+	QPushButton* noButton =		box.addButton(NoButtonText,		QMessageBox::ButtonRole::NoRole);
+	box.exec();
 
-	return box.exec() == QMessageBox::Yes;
+	return box.clickedButton() == yesButton;
 }
 
 MessageForwarder::DialogResponse MessageForwarder::showYesNoCancel(QString title, QString message, QString YesButtonText, QString NoButtonText, QString CancelButtonText)
@@ -50,38 +57,44 @@ MessageForwarder::DialogResponse MessageForwarder::showYesNoCancel(QString title
 	if(NoButtonText == "")		NoButtonText		= tr("No");
 	if(CancelButtonText == "")	CancelButtonText	= tr("Cancel");
 
-	QMessageBox box(QMessageBox::Question, title, message,  QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+	QMessageBox box(QMessageBox::Question, title, message);
 
-	box.setButtonText(QMessageBox::Yes,		YesButtonText);
-	box.setButtonText(QMessageBox::No,		NoButtonText);
-	box.setButtonText(QMessageBox::Cancel,	CancelButtonText);
+	QPushButton* yesButton =	box.addButton(YesButtonText,		QMessageBox::ButtonRole::YesRole);
+	QPushButton* noButton =		box.addButton(NoButtonText,			QMessageBox::ButtonRole::NoRole);
+	QPushButton* cancelButton = box.addButton(CancelButtonText,		QMessageBox::ButtonRole::RejectRole);
+	box.setDefaultButton(cancelButton);
 
-	switch(box.exec())
-	{
-	case QMessageBox::Yes:	return DialogResponse::Yes;
-	case QMessageBox::No:	return DialogResponse::No;
-	default:				return DialogResponse::Cancel;
-	}
+	box.exec();
+
+	QAbstractButton* clicked = box.clickedButton();
+	if (clicked == yesButton)		return DialogResponse::Yes;
+	else if (clicked == noButton)	return DialogResponse::No;
+
+	return DialogResponse::Cancel;
 }
 
-MessageForwarder::DialogResponse MessageForwarder::showSaveDiscardCancel(QString title, QString message, QString saveTxt, QString discardText, QString cancelText)
+MessageForwarder::DialogResponse MessageForwarder::showSaveDiscardCancel(QString title, QString message, QString saveText, QString noSaveText, QString cancelText)
 {
-	QMessageBox box(QMessageBox::Question, title, message,  QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+	QMessageBox box(QMessageBox::Question, title, message);
 
-	if(saveTxt == "")		saveTxt		= tr("Save");
-	if(discardText == "")	discardText = tr("Don't Save");
+	if(saveText == "")		saveText	= tr("Save");
 	if(cancelText == "")	cancelText	= tr("Cancel");
+	if(noSaveText == "")	noSaveText	= tr("Don't Save");
 
-	box.setButtonText(QMessageBox::Save,		saveTxt);
-	box.setButtonText(QMessageBox::Discard,		discardText);
-	box.setButtonText(QMessageBox::Cancel,		cancelText);
+	// In order to have the noSaveButton as first in the row of buttons, it has to get the role RejectRole.
+	QPushButton* saveButton =	box.addButton(saveText,		QMessageBox::ButtonRole::AcceptRole);
+	QPushButton* noSaveButton =	box.addButton(noSaveText,	QMessageBox::ButtonRole::DestructiveRole);
+	QPushButton* cancelButton =	box.addButton(cancelText,	QMessageBox::ButtonRole::RejectRole);
+	box.setDefaultButton(saveButton);
 
-	switch(box.exec())
-	{
-	case QMessageBox::Save:			return DialogResponse::Save;
-	case QMessageBox::Discard:		return DialogResponse::Discard;
-	default:						return DialogResponse::Cancel;
-	}
+	box.exec();
+
+	QAbstractButton* clicked = box.clickedButton();
+
+	if (clicked == saveButton)			return DialogResponse::Save;
+	else if (clicked == noSaveButton)	return DialogResponse::Discard;
+
+	return DialogResponse::Cancel;
 }
 
 QString MessageForwarder::askPassword(QString title, QString message)
@@ -92,8 +105,8 @@ QString MessageForwarder::askPassword(QString title, QString message)
 
 QString MessageForwarder::browseOpenFile(QString caption, QString browsePath, QString filter)
 {
-	if(Settings::value(Settings::USE_NATIVE_FILE_DIALOG).toBool())	return 	QFileDialog::getOpenFileName(nullptr, caption, browsePath, filter);
-	else															return 	QFileDialog::getOpenFileName(nullptr, caption, browsePath, filter, nullptr, QFileDialog::DontUseNativeDialog);
+	if(useNativeFileDialogs())	return 	QFileDialog::getOpenFileName(nullptr, caption, browsePath, filter);
+	else						return 	QFileDialog::getOpenFileName(nullptr, caption, browsePath, filter, nullptr, QFileDialog::DontUseNativeDialog);
 }
 
 QString MessageForwarder::browseOpenFileDocuments(QString caption, QString filter)
@@ -112,8 +125,8 @@ QString MessageForwarder::browseSaveFile(QString caption, QString browsePath, QS
 
 	QString saveFileName, selectedFilter;
 
-	if(Settings::value(Settings::USE_NATIVE_FILE_DIALOG).toBool())	saveFileName = 	QFileDialog::getSaveFileName(nullptr, caption, browsePath, filter, &selectedFilter);
-	else															saveFileName = 	QFileDialog::getSaveFileName(nullptr, caption, browsePath, filter, &selectedFilter, QFileDialog::DontUseNativeDialog);
+	if(useNativeFileDialogs())	saveFileName = 	QFileDialog::getSaveFileName(nullptr, caption, browsePath, filter, &selectedFilter);
+	else						saveFileName = 	QFileDialog::getSaveFileName(nullptr, caption, browsePath, filter, &selectedFilter, QFileDialog::DontUseNativeDialog);
 
 	Log::log() << "Selected save file: " << saveFileName << " and selected filter: " << selectedFilter << std::endl;
 
@@ -145,8 +158,8 @@ QString MessageForwarder::browseSaveFile(QString caption, QString browsePath, QS
 
 QString MessageForwarder::browseOpenFolder(QString caption, QString browsePath)
 {
-	if(Settings::value(Settings::USE_NATIVE_FILE_DIALOG).toBool())	return QFileDialog::getExistingDirectory(nullptr, caption, browsePath, QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-	else															return QFileDialog::getExistingDirectory(nullptr, caption, browsePath, QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks | QFileDialog::DontUseNativeDialog);
+	if(useNativeFileDialogs())	return QFileDialog::getExistingDirectory(nullptr, caption, browsePath, QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+	else						return QFileDialog::getExistingDirectory(nullptr, caption, browsePath, QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks | QFileDialog::DontUseNativeDialog);
 }
 
 QString MessageForwarder::browseOpenFolder(QString caption)

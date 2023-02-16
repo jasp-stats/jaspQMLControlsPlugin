@@ -35,7 +35,7 @@ class FormulaBase : public QQuickItem
 	Q_PROPERTY( QVariant	userMustSpecify		READ userMustSpecify		WRITE setUserMustSpecify		NOTIFY userMustSpecifyChanged		)
 	Q_PROPERTY( QVariant	lhs					READ lhs					WRITE setLhs					NOTIFY lhsChanged					)
 	Q_PROPERTY( QVariant	rhs					READ rhs					WRITE setRhs					NOTIFY rhsChanged					)
-	Q_PROPERTY( QString		name				READ name					WRITE setName					NOTIFY nameChanged			)
+	Q_PROPERTY( QString		name				READ name					WRITE setName					NOTIFY nameChanged					)
 
 public:
 	FormulaBase(QQuickItem *parent = nullptr);
@@ -46,7 +46,7 @@ public:
 	QVariant			rhs()																const	{ return _rhs;				}
 	QString				name()																const	{ return _name;				}
 
-	QString				toString()															const;
+	QString				toString(bool &isNull)												const;
 	bool				parseRSyntaxOptions(Json::Value &options)							const;
 	RSyntax*			rSyntax()															const	{ return _rSyntax;			}
 	AnalysisForm	*	form()																const;
@@ -80,7 +80,7 @@ private:
 	QVariant				_userMustSpecify,
 							_lhs,
 							_rhs;
-	QString					_name			= "formula";
+	QString					_name				= "formula";
 	QVector<FormulaSource*>	_leftFormulaSources,
 							_rightFormulaSources;
 };

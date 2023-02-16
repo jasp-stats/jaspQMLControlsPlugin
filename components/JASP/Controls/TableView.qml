@@ -50,6 +50,12 @@ TableViewBase
 	property bool	isFirstColEditable	: true
 	property bool	showAddRemoveButtons: modelType === JASP.GridInput
 
+	property alias  view					: theView
+	property alias  itemDelegate			: theView.itemDelegate
+	property alias  rowNumberDelegate		: theView.rowNumberDelegate
+	property alias  columnHeaderDelegate	: theView.columnHeaderDelegate
+	property alias  leftTopCornerItem		: theView.leftTopCornerItem
+
 	property alias	addLeftButton	: addLeftButton
 	property alias	addRightButton	: addRightButton
 	property alias	deleteButton	: deleteButton
@@ -58,10 +64,11 @@ TableViewBase
 	readonly property int tableWidth:  theView.width  + 2 + (vertiScroller.visible ? jaspTheme.scrollbarBoxWidth : 0)
 	readonly property int tableHeight: theView.height + 2 + (horiScroller.visible ? jaspTheme.scrollbarBoxWidth : 0)
 
-	// These 3 functions can be overloaded to set a custom column or row header, or a default value.
+	// These 4 functions can be overloaded to set a custom column or row header, or a default value, or a default validator.
 	function getColHeaderText(headerText, columnIndex)			{ return (columnNames.length > columnIndex)	? columnNames[columnIndex]	: headerText; }
 	function getRowHeaderText(headerText, rowIndex)				{ return (rowNames.length > rowIndex)		? rowNames[rowIndex]		: headerText; }
 	function getDefaultValue(columnIndex, rowIndex)				{ return defaultValue;	}
+	function getValidator(columnIndex, rowIndex)				{ return validator;	}
 
 	//These signals are added because I had some trouble connecting the filterChanged from C++ (in constructor of ListModelFilteredDataEntry)
 	signal filterSignal(string filter)
@@ -255,7 +262,8 @@ TableViewBase
 					MouseArea
 					{
 						anchors.fill: parent
-						onClicked: {
+						onClicked: 
+						{
 							if (tableView.colSelected === columnIndex)
 								columnIndex = -1
 							tableView.colSelected = columnIndex;
@@ -265,7 +273,7 @@ TableViewBase
 
 				rowNumberDelegate: Rectangle
 				{
-					color: jaspTheme.analysisBackgroundColor
+					color: rowIndex === tableView.rowSelected ? jaspTheme.grayLighter : jaspTheme.analysisBackgroundColor
 					Text
 					{
 						text:					tableView.getRowHeaderText(headerText, rowIndex);
@@ -278,6 +286,17 @@ TableViewBase
 						width:					parent.width
 						height:					parent.width
 						font:					jaspTheme.font
+					}
+					
+					MouseArea
+					{
+						anchors.fill: parent
+						onClicked: 
+						{
+							if (tableView.rowSelected === rowIndex)
+								rowIndex = -1
+							tableView.rowSelected = rowIndex;
+						}
 					}
 				}
 
@@ -305,11 +324,11 @@ TableViewBase
 						parseDefaultValue:		tableView.parseDefaultValue
 						defaultValue:			tableView.getDefaultValue(columnIndex, rowIndex)
 						selectValueOnFocus:		true
-						validator:				tableView.validator
+						validator:				getValidator(columnIndex, rowIndex)
 						onPressed:				tableView.colSelected = columnIndex
 						onEditingFinished:
 						{
-							tableView.itemChanged(columnIndex, rowIndex, value, inputType)
+							tableView.itemChanged(columnIndex, rowIndex, displayValue, inputType)
 							tableView.setButtons()
 						}
 						editable:				itemEditable

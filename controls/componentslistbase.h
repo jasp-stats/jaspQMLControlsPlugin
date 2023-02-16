@@ -41,6 +41,7 @@ public:
 	Json::Value		createJson()								const	override;
 	void			bindTo(const Json::Value& value)					override;
 	ListModel*		model()										const	override { return _termsModel; }
+	void			setUp()												override;
 	void			setUpModel()										override;
 
 	QString			newItemName()						const			{ return _newItemName;			}
@@ -50,7 +51,7 @@ public:
 	QList<QVariant>	defaultValues()						const			{ return _defaultValues;		}
 	bool			duplicateWhenAdding()				const			{ return _duplicateWhenAdding;	}
 
-	Json::Value		getConditionalTermsOptions(const ListModel::RowControlsValues& conditionalTermsMap);
+	Json::Value		getJsonFromComponentValues(const ListModel::RowControlsValues& termsWithComponentValues);
 signals:
 	void			addItem();
 	void			removeItem(int index);

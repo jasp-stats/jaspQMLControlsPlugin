@@ -43,6 +43,13 @@ AnalysisForm
 
 	property int    plotHeight			: 320
 	property int    plotWidth			: 480
+
+
+	Keys.onPressed: (event) => { event.accepted = true; } //dont let leftover input propagate upwards
+
+	ALTNavigation.enabled:			visible
+	ALTNavigation.scopeOnly:		true
+	ALTNavigation.parent:			null //default root
 					
 	MouseArea
 	{
@@ -175,12 +182,14 @@ AnalysisForm
 			anchors.top:		warningMessagesBox.bottom
 			width:				parent.width
 			height:				visible ? rScriptArea.y + rScriptArea.height : 0
-			visible:			form.showRSyntax
+			visible:			preferencesModel.showRSyntax
 
 			Button
 			{
 				id:					generateWrapperButton
-				label:				"Generate Wrapper"
+				visible:            DEBUG_MODE || form.developerMode
+				height:				visible ? implicitHeight : 0
+				label:				qsTr("Generate Wrapper")
 				onClicked:			popup.open()
 
 				Popup
@@ -206,17 +215,33 @@ AnalysisForm
 					}
 				}
 			}
+
+			CheckBox
+			{
+				id:					showAllROptionsCheckBox
+				anchors.top:		generateWrapperButton.visible ? undefined : rSyntaxElement.top
+				anchors.bottom:		generateWrapperButton.visible ? generateWrapperButton.bottom : undefined
+				anchors.right:		rSyntaxElement.right
+				label:				qsTr("Show all options")
+				isBound:			false
+				checked:			showAllROptions
+				onClicked:			setShowAllROptions(!showAllROptions)
+			}
+
 			TextArea
 			{
 				id:					rScriptArea
 				name:				form.rSyntaxControlName
-				anchors.top:		generateWrapperButton.bottom
+
+				anchors.top:		showAllROptionsCheckBox.bottom
 				anchors.topMargin:	jaspTheme.generalAnchorMargin
 				width:				parent.width
 				height:				visible ? 100 * preferencesModel.uiScale : 0
 				text:				form.rSyntaxText
 				isBound:			false
 				onApplyRequest:		form.sendRSyntax(text)
+
+				onInitializedChanged: if (preferencesModel.showRSyntax) control.forceActiveFocus() // If the textarea has already some large text, then it does not display it if it does not get temporarly the focus...
 			}
 		}
 

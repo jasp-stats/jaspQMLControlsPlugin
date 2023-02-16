@@ -32,6 +32,7 @@
 #include <QQmlEngine>
 #include <QTimer>
 #include "controls/variableslistbase.h"
+#include "preferencesmodelbase.h"
 
 using namespace std;
 
@@ -43,10 +44,14 @@ AnalysisForm::AnalysisForm(QQuickItem *parent) : QQuickItem(parent)
 
 	_rSyntax = new RSyntax(this);
 	// _startRSyntaxTimer is used to call setRSyntaxText only once in a event loop.
-	connect(this,					&AnalysisForm::infoChanged,			this, &AnalysisForm::helpMDChanged			);
-	connect(this,					&AnalysisForm::formCompletedSignal,	this, &AnalysisForm::formCompletedHandler,	Qt::QueuedConnection);
-	connect(this,					&AnalysisForm::analysisChanged,		this, &AnalysisForm::knownIssuesUpdated,	Qt::QueuedConnection);
-	connect(KnownIssues::issues(),	&KnownIssues::knownIssuesUpdated,	this, &AnalysisForm::knownIssuesUpdated,	Qt::QueuedConnection);
+	connect(this,									&AnalysisForm::infoChanged,					this, &AnalysisForm::helpMDChanged			);
+	connect(this,									&AnalysisForm::formCompletedSignal,			this, &AnalysisForm::formCompletedHandler,	Qt::QueuedConnection);
+	connect(this,									&AnalysisForm::analysisInitialized,			this, &AnalysisForm::knownIssuesUpdated,	Qt::QueuedConnection);
+	connect(KnownIssues::issues(),					&KnownIssues::knownIssuesUpdated,			this, &AnalysisForm::knownIssuesUpdated,	Qt::QueuedConnection);
+	connect(this,									&AnalysisForm::showAllROptionsChanged,		this, &AnalysisForm::setRSyntaxText,		Qt::QueuedConnection);
+	connect(PreferencesModelBase::preferences(),	&PreferencesModelBase::showRSyntaxChanged,	this, &AnalysisForm::setRSyntaxText,		Qt::QueuedConnection);
+	connect(PreferencesModelBase::preferences(),	&PreferencesModelBase::showAllROptionsChanged,	this, &AnalysisForm::showAllROptionsChanged, Qt::QueuedConnection	);
+	connect(this,									&AnalysisForm::analysisInitialized,			this, &AnalysisForm::setRSyntaxText,		Qt::QueuedConnection);
 }
 
 AnalysisForm::~AnalysisForm()
@@ -58,7 +63,7 @@ void AnalysisForm::runRScript(QString script, QString controlName, bool whiteLis
 {
 	if(_analysis && !_removed)
 	{
-		if(_valueChangedSignalsBlocked == 0)	emit _analysis->sendRScript(script, controlName, whiteListedVersion);
+		if(_valueChangedSignalsBlocked == 0)	_analysis->sendRScript(script, controlName, whiteListedVersion);
 		else									_waitingRScripts.push(std::make_tuple(script, controlName, whiteListedVersion));
 	}
 }
@@ -117,6 +122,7 @@ void AnalysisForm::runScriptRequestDone(const QString& result, const QString& co
 			parser.parse(fq(result), jsonResult);
 			Json::Value options = jsonResult["options"];
 			clearControlError(rSyntaxControl);
+			clearFormErrors();
 			if (_rSyntax->parseRSyntaxOptions(options))
 			{
 				bindTo(options);
@@ -149,28 +155,6 @@ void AnalysisForm::addControl(JASPControl *control)
 {
 	const QString & name = control->name();
 
-	if (name.isEmpty() && control->isBound())
-	{
-		QString label = control->humanFriendlyLabel();
-
-		if (!label.isEmpty())	addFormError(tr("Control with label '%1' has no name").arg(label));
-		else					addFormError(tr("A control has no name"));
-
-		control->setHasError(true);
-	}
-
-	if (!name.isEmpty() && control->nameMustBeUnique())
-	{
-		if (_controls.keys().contains(name))
-		{
-			addFormError(tr("2 controls have the same name: %1").arg(name));
-			control			->	setHasWarning(true);
-			_controls[name]	->	setHasWarning(true);
-		}
-		else
-			_controls[name] = control;
-	}
-
 	if (_analysis && control->isBound())
 	{
 		connect(control, &JASPControl::requestColumnCreation, _analysis, &AnalysisBase::requestColumnCreationHandler);
@@ -181,6 +165,23 @@ void AnalysisForm::addControl(JASPControl *control)
 		ExpanderButtonBase* expander = dynamic_cast<ExpanderButtonBase*>(control);
 		_expanders.push_back(expander);
 	}
+
+	if (!name.isEmpty() && !control->nameIsOptionValue())
+	{
+		if (_controls.count(name) > 0)
+		{
+			control->addControlError(tr("2 controls have the same name: %1").arg(name));
+			_controls[name]->addControlError(tr("2 controls have the same name: %1").arg(name));
+		}
+		else
+			_controls[name] = control;
+	}
+	else if (name.isEmpty())
+	{
+		control->setUp();
+		control->setInitialized();
+	}
+
 }
 
 void AnalysisForm::addColumnControl(JASPControl* control, bool isComputed)
@@ -265,7 +266,6 @@ void AnalysisForm::_setUp()
 {
 	QList<JASPControl*> controls = _controls.values();
 
-	// set the order of the BoundItems according to their dependencies (for binding purpose)
 	for (JASPControl* control : controls)
 		control->setUp();
 
@@ -376,7 +376,7 @@ void AnalysisForm::bindTo(const Json::Value & defaultOptions)
 			// As their assigned models are not yet bound, resetTermsFromSourceModels (with updateAssigned argument set to true) must be called afterwards.
 			if (availableModel)
 			{
-				if (defaultOptions != Json::nullValue || _analysis->isDuplicate())
+				if (defaultOptions.size() != 0 || _analysis->isDuplicate())
 					availableModel->resetTermsFromSources(false);
 				else
 					availableModelsToBeReset.push_back(availableModel);
@@ -386,7 +386,7 @@ void AnalysisForm::bindTo(const Json::Value & defaultOptions)
 		if (boundControl)
 		{
 			std::string name = control->name().toStdString();
-			Json::Value optionValue =  defaultOptions != Json::nullValue ? defaultOptions[name] : Json::nullValue;
+			Json::Value optionValue =  defaultOptions.size() != 0 ? defaultOptions[name] : Json::nullValue;
 
 			if (optionValue != Json::nullValue && !boundControl->isJsonValid(optionValue))
 			{
@@ -537,6 +537,12 @@ void AnalysisForm::clearFormErrors()
 {
 	_formErrors.clear();
 	emit errorsChanged();
+
+	for(auto & control : _controls)
+	{
+		control->setHasError(false);
+		control->setHasWarning(false);
+	}
 }
 
 
@@ -602,14 +608,15 @@ void AnalysisForm::setAnalysisUp()
 
 	_setUpControls();
 
-	const Json::Value & defaultOptions = _analysis->isDuplicate() ? _analysis->boundValues() : _analysis->optionsFromJASPFile();
+	Json::Value defaultOptions = _analysis->orgBoundValues();
+	_analysis->clearOptions();
 	bindTo(defaultOptions);
 
 	blockValueChangeSignal(false, false);
 
 	_initialized = true;
 
-	emit analysisChanged();
+	emit analysisInitialized();
 }
 
 void AnalysisForm::knownIssuesUpdated()
@@ -712,7 +719,7 @@ void AnalysisForm::blockValueChangeSignal(bool block, bool notifyOnceUnblocked)
 				while(_waitingRScripts.size() > 0)
 				{
 					const auto & front = _waitingRScripts.front();
-					emit _analysis->sendRScript(std::get<0>(front), std::get<1>(front), std::get<2>(front));
+					_analysis->sendRScript(std::get<0>(front), std::get<1>(front), std::get<2>(front));
 					_waitingRScripts.pop();
 				}
 			else //Otherwise just clean it up
@@ -721,48 +728,26 @@ void AnalysisForm::blockValueChangeSignal(bool block, bool notifyOnceUnblocked)
 	}
 }
 
+QString AnalysisForm::rSyntaxText() const
+{
+	Log::log() << "rSyntaxText: " << _rSyntaxText << std::endl;
+
+	return _rSyntaxText;
+}
+
 bool AnalysisForm::needsRefresh() const
 {
 	return _analysis ? _analysis->needsRefresh() : false;
 }
 
-QString AnalysisForm::metaHelpMD() const
+bool AnalysisForm::isFormulaName(const QString& name) const
 {
-	std::function<QString(const Json::Value & meta, int deep)> metaMDer = [&metaMDer](const Json::Value & meta, int deep)
-	{
-		QStringList markdown;
-
-		for(const Json::Value & entry : meta)
-		{
-			std::string entryType	= entry.get("type", "").asString();
-			//Sadly enough the following "meta-types" aren't defined properly anywhere, this would be good to do at some point. The types are: table, image, collection, and optionally: htmlNode, column, json
-			QString friendlyObject	= entryType == "table"		? tr("Table")
-									: entryType == "image"		? tr("Plot")
-									: entryType == "collection"	? tr("Collection")
-									: tr("Result"); //Anything else we just call "Result"
-
-			if(entry.get("info", "") != "")
-			{
-				for(int i=0; i<deep; i++) markdown << "#";
-				markdown << " " << friendlyObject;
-				if(entry.get("title", "") != "")	markdown << tq(" - *" + entry["title"].asString() + "*:\n");
-				else								markdown << "\n";
-				markdown << tq(entry["info"].asString() + "\n");
-			}
-
-			if(entry.get("meta", Json::nullValue).isArray())
-				markdown << "\n" << metaMDer(entry["meta"], deep + 1);
-		}
-
-		return markdown.join("");
-	};
-
-	return "---\n# " + tr("Output") + "\n\n" + metaMDer(_analysis->resultsMeta(), 2);
+	return _rSyntax->getFormula(name) != nullptr;
 }
 
 QString AnalysisForm::generateRSyntax() const
 {
-	return _rSyntax->generateSyntax();
+	return _rSyntax->generateSyntax(showAllROptions());
 }
 
 QVariantList AnalysisForm::optionNameConversion() const
@@ -904,6 +889,7 @@ std::set<string> AnalysisForm::usedVariables()
 	return result;
 }
 
+///Generates documentation based on the "info" entered on each component
 QString AnalysisForm::helpMD() const
 {
 	if(!_analysis) return "";
@@ -913,13 +899,16 @@ QString AnalysisForm::helpMD() const
 		title(), "\n",
 		"=====================\n",
 		_info, "\n\n",
-		"---\n# ", tr("Input"), "\n"
+		"---\n# ", tr("Options"), "\n"
 	};
 
 	QList<JASPControl*> orderedControls = JASPControl::getChildJASPControls(this);
 
+	std::set<const JASPControl *> markdowned;
+
 	for(JASPControl * control : orderedControls)
-		markdown.push_back(control->helpMD());
+		if(!markdowned.count(control))
+			markdown.push_back(control->helpMD(markdowned));
 
 	markdown.push_back(metaHelpMD());
 	
@@ -931,36 +920,114 @@ QString AnalysisForm::helpMD() const
 	return md;
 }
 
-void AnalysisForm::setShowRSyntax(bool showRSyntax)
+///Collects "info" from results and lists them underneath the output in the help-md window
+QString AnalysisForm::metaHelpMD() const
 {
-	if (_showRSyntax == showRSyntax)
+	std::function<QString(const Json::Value & meta, int deep)> metaMDer = [&metaMDer](const Json::Value & meta, int deep)
+	{
+		QStringList markdown;
+
+		for(const Json::Value & entry : meta)
+		{
+			std::string entryType	= entry.get("type", "").asString();
+			//Sadly enough the following "meta-types" aren't defined properly anywhere, this would be good to do at some point. The types are: table, image, collection, and optionally: htmlNode, column, json
+			QString friendlyObject	= entryType == "table"		? tr("Table")
+									: entryType == "image"		? tr("Plot")
+									: entryType == "collection"	? tr("Collection")
+									: tr("Result"); //Anything else we just call "Result"
+
+			if(entry.get("info", "") != "")
+			{
+				for(int i=0; i<deep; i++) markdown << "#";
+				markdown << " " << friendlyObject;
+				if(entry.get("title", "") != "")	markdown << tq(" - *" + entry["title"].asString() + "*:\n");
+				else								markdown << "\n";
+				markdown << tq(entry["info"].asString() + "\n");
+			}
+
+			if(entry.get("meta", Json::nullValue).isArray())
+				markdown << "\n" << metaMDer(entry["meta"], deep + 1);
+		}
+
+		return markdown.join("");
+	};
+
+	QString meta = metaMDer(_analysis->resultsMeta(), 2);
+	return meta.isEmpty() ? "" : "---\n# " + tr("Output") + "\n\n" + meta;
+}
+
+void AnalysisForm::setShowRButton(bool showRButton)
+{
+	if (_showRButton == showRButton)
 		return;
-	
-	_showRSyntax = showRSyntax;
-	setRSyntaxText();
 
-	emit showRSyntaxChanged();
+	_showRButton = showRButton;
 
+	emit showRButtonChanged();
+}
+
+void AnalysisForm::setDeveloperMode(bool developerMode)
+{
+	if (_developerMode == developerMode)
+		return;
+
+	_developerMode = developerMode;
+
+	emit developerModeChanged();
 }
 
 void AnalysisForm::setRSyntaxText()
 {
-	if (!_showRSyntax)
+	if (!initialized() || !PreferencesModelBase::preferences()->showRSyntax())
 		return;
 
 	QString text = generateRSyntax();
+	Log::log() << "setRSyntaxText: " << text << std::endl;
 
 	if (text != _rSyntaxText)
 	{
 		_rSyntaxText = text;
+		Log::log() << "EMIT rSyntaxTextChanged" << std::endl;
 		emit rSyntaxTextChanged();
 	}
 }
 
-void AnalysisForm::sendRSyntax(QString text)
+bool AnalysisForm::showAllROptions() const
 {
-	setShowRSyntax(true);
-	emit _analysis->sendRScript(text, rSyntaxControlName, false);
+	return PreferencesModelBase::preferences()->showAllROptions();
 }
 
+void AnalysisForm::setShowAllROptions(bool showAllROptions)
+{
+	PreferencesModelBase::preferences()->setShowAllROptions(showAllROptions);
+}
 
+void AnalysisForm::sendRSyntax(QString text)
+{
+	PreferencesModelBase::preferences()->setShowRSyntax(true);
+	_analysis->sendRScript(text, rSyntaxControlName, false);
+}
+
+void AnalysisForm::toggleRSyntax()
+{
+	PreferencesModelBase* pref = PreferencesModelBase::preferences();
+	pref->setShowRSyntax(!pref->showRSyntax());
+}
+
+void AnalysisForm::setActiveJASPControl(JASPControl* control, bool hasActiveFocus)
+{
+	bool emitSignal = false;
+	if (hasActiveFocus)
+	{
+		 if (_activeJASPControl != control) emitSignal = true;
+		 _activeJASPControl = control;
+	}
+	else if (control == _activeJASPControl)
+	{
+		 if (_activeJASPControl) emitSignal = true;
+		 _activeJASPControl = nullptr;
+	}
+
+	if (emitSignal)
+		emit activeJASPControlChanged();
+}

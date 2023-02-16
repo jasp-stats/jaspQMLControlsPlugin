@@ -97,52 +97,29 @@ bool ListModelAssignedInterface::sourceLabelsReordered(QString columnName)
 	return change;
 }
 
-void ListModelAssignedInterface::sourceTermsReset()
+bool ListModelAssignedInterface::checkAllowedTerms(Terms& terms)
 {
-	ListModelDraggable::sourceTermsReset();
+	if (!_availableModel) return true;
 
-	if (!_rowComponent) 
-		return;
-
-	// If row components exist and source changes, the default value must change.
-	// Each new term should give the default values for their row
-	// If the term already exists, then the default value for this row should not change.
-	BoundControl* boundControl = listView()->boundControl();
-	if (!boundControl) 
-		return;
-
-	const Json::Value	& defaultValue 	= boundControl->defaultBoundValue(),
-						& newValue 		= boundControl->boundValue();
-
-	if (!newValue.isArray() || !defaultValue.isArray()) 
-		return; // should never happen..
-
-	Json::Value newDefaultValue(Json::arrayValue);
-	std::string optionKey = fq(listView()->optionKey());
-
-	for (const Json::Value & rowValue : newValue)
+	Terms notAllowedTerms, allowedTerms;
+	for (const Term& term : terms)
 	{
-		if (!rowValue.isObject()) 
-			continue; //should never happen
-
-		const Json::Value & 	key 				= rowValue[optionKey];
-		bool 					foundDefaultValue 	= false;
-
-		for (const Json::Value& defaultRowValue : defaultValue)
-		{
-			if (!defaultRowValue.isArray()) 
-				continue; //should never happen
-				
-			if (defaultRowValue[optionKey] == key)
-			{
-				foundDefaultValue = true;
-				newDefaultValue.append(defaultRowValue);
-				break;
-			}
-		}
-		if (!foundDefaultValue)
-			newDefaultValue.append(rowValue);
+		if (isAllowed(term))
+			allowedTerms.add(term);
+		else
+			notAllowedTerms.add(term);
 	}
+	if (notAllowedTerms.size() == 0) return true;
 
-	boundControl->setDefaultBoundValue(newDefaultValue);
+	terms.set(allowedTerms);
+	if (!_availableModel->copyTermsWhenDropped())
+		_availableModel->addTerms(notAllowedTerms);
+
+	QString notAllowedTermsStr = notAllowedTerms.asQList().join(", ");
+	if (notAllowedTerms.size() == 1)
+		listView()->addControlWarningTemporary(tr("This variable has been removed, because it is not allowed: %1").arg(notAllowedTermsStr));
+	else
+		listView()->addControlWarningTemporary(tr("These variables have been removed, because they are not allowed: %1").arg(notAllowedTermsStr));
+
+	return false;
 }

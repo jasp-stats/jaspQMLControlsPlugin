@@ -1,4 +1,4 @@
-﻿#include "jaspcontrol.h"
+#include "jaspcontrol.h"
 #include "jasplistcontrol.h"
 #include "log.h"
 #include "analysisform.h"
@@ -6,6 +6,9 @@
 #include <QQmlProperty>
 #include <QQmlContext>
 #include <QTimer>
+#include <QQuickWindow>
+
+const QStringList JASPControl::_optionReservedNames = {"data", "version"};
 
 QMap<QQmlEngine*, QQmlComponent*> JASPControl::_mouseAreaComponentMap;
 QByteArray JASPControl::_mouseAreaDef = "\
@@ -63,6 +66,7 @@ JASPControl::JASPControl(QQuickItem *parent) : QQuickItem(parent)
 	connect(this, &JASPControl::toolTipChanged,			[this] () { QQmlProperty(this, "ToolTip.text", qmlContext(this)).write(toolTip()); } );
 	connect(this, &JASPControl::boundValueChanged,		this, &JASPControl::_resetBindingValue);
 	connect(this, &JASPControl::activeFocusChanged,		this, &JASPControl::_setFocus);
+	connect(this, &JASPControl::activeFocusChanged,		this, &JASPControl::_notifyFormOfActiveFocus);
 }
 
 JASPControl::~JASPControl()
@@ -89,8 +93,12 @@ void JASPControl::setInnerControl(QQuickItem* control)
 	if (control != _innerControl)
 	{
 		_innerControl = control;
-		if (_innerControl)
+		if (_innerControl && !qobject_cast<JASPControl*>(_innerControl))
+		{
 			connect(_innerControl, &QQuickItem::activeFocusChanged, this, &JASPControl::_setShouldShowFocus);
+			//capture focus reason
+			control->installEventFilter(this);
+		}
 
 		emit innerControlChanged();
 	}
@@ -177,6 +185,8 @@ void JASPControl::componentComplete()
 	_setBackgroundColor();
 	_setVisible();
 
+	connect(this, &JASPControl::initializedChanged, this, &JASPControl::_checkControlName);
+
 	if (_useControlMouseArea)
 	{
 		QQmlComponent* comp = getMouseAreaComponent(qmlEngine(this));
@@ -196,10 +206,22 @@ void JASPControl::componentComplete()
 	bool isDynamic = context->contextProperty("isDynamic").toBool();
 	_form = context->contextProperty("form").value<AnalysisForm*>();
 
-	if (!isDynamic && _form)
+	if (!_form)
+	{
+		// The control is used outside of a form, typically this is used by the Desktop application direclty
+		// Just call its setup function, and it is then already initialized.
+		setUp();
+		setInitialized();
+	}
+	else if (!isDynamic)
+		// For statically build controls in a form, the form self will setup the controls when the form is completely loaded
+		// (by calling the AnalysisForm::setAnalysisUp function).
 		_form->addControl(this);
 	else
 	{
+		// The control is created dynamically, this is the case for row components.
+		// They are created either from a ListView (or a TableView): when all terms of the ListView are set, the row components are created, and then initialized (via rhe ListModel::setUpRowControls function).
+		// Here the parent ListView and the key for this control is stored.
 		setUp();
 
 		JASPListControl* listView = nullptr;
@@ -230,9 +252,6 @@ void JASPControl::componentComplete()
 
 			emit parentListViewChanged();
 		}
-
-		if (!isDynamic)
-			setInitialized();
 	}
 
 	if (_background == nullptr && _innerControl != nullptr)
@@ -426,6 +445,82 @@ void JASPControl::setParentDebugToChildren(bool debug)
 			childControl->setParentDebug(debug);
 }
 
+void JASPControl::focusInEvent(QFocusEvent *event)
+{
+	QQuickItem::focusInEvent(event);
+	_focusReason = event->reason();
+	_hasActiveFocus = true;
+}
+
+//Installed of innercontrol and non JASPControl children to capture focus reason
+bool JASPControl::eventFilter(QObject *watched, QEvent *event)
+{
+	if (event->type() == QEvent::FocusIn)
+	{
+		QFocusEvent* focusEvent = static_cast<QFocusEvent*>(event);
+		_focusReason = focusEvent->reason();
+		_hasActiveFocus = true;
+	}
+	#ifdef __APPLE__
+	if (event->type() == QEvent::MouseButtonPress)
+	{
+		QQuickItem* item = qobject_cast<QQuickItem*>(watched);
+		if(item)
+			item->forceActiveFocus(Qt::FocusReason::MouseFocusReason);
+	}
+	#endif
+		return false;
+}
+
+void JASPControl::_checkControlName()
+{
+	checkOptionName(_name);
+}
+
+bool JASPControl::checkOptionName(const QString &name)
+{
+	// Do not check the option name if the control is not yet initialized: the isBound property is maybe not yet set
+	// A RadioButton uses the name as value of a RadioButtonGroup option, so it's not an option self, so don't check it
+	// (the RadioButtonGroup will take care that the Radio Button names are consistent.
+	if (!form() || !initialized() || nameIsOptionValue()) return true;
+
+	// Some controls without bound value, have a name (like Available Variables List). This name must also be checked
+	if (!isBound() && name.isEmpty()) return true;
+
+	// If a control is bound, it must have a name.
+	if (isBound() && name.isEmpty())
+	{
+		QString label = humanFriendlyLabel();
+
+		if (!label.isEmpty())	addControlError(tr("Control with label '%1' has no name").arg(label));
+		else					addControlError(tr("A control has no name"));
+
+		return false;
+	}
+
+	if (_optionReservedNames.contains(name))
+	{
+		addControlError(tr("Option name '%1' is a reserved word").arg(name));
+		return false;
+	}
+
+	JASPControl* anotherControl = form()->getControl(name);
+	if (anotherControl && anotherControl != this)
+	{
+		addControlError(tr("2 controls have the same name: %1").arg(name));
+		anotherControl->addControlError(tr("2 controls have the same name: %1").arg(name));
+		return false;
+	}
+
+	if (form()->isFormulaName(name))
+	{
+		addControlError(tr("A control and a formula have the same name '%1'").arg(name));
+		return false;
+	}
+
+	return true;
+}
+
 QString JASPControl::ControlTypeToFriendlyString(ControlType controlType)
 {
 	switch(controlType)
@@ -438,8 +533,8 @@ QString JASPControl::ControlTypeToFriendlyString(ControlType controlType)
 	case ControlType::TextField:					return tr("Entry Field");			break;
 	case ControlType::RadioButton:					return tr("Radio Button");			break;
 	case ControlType::RadioButtonGroup:				return tr("Radio Buttons");			break;
-	case ControlType::VariablesListView:			return tr("Variables");				break;
-	case ControlType::ComboBox:						return tr("ComboBox");				break;
+	case ControlType::VariablesListView:			return tr("Variables List");		break;
+	case ControlType::ComboBox:						return tr("DropDown");				break;
 	case ControlType::FactorLevelList:				return tr("Factor Level List");		break;
 	case ControlType::InputListView:				return tr("Input ListView");		break;
 	case ControlType::TableView:					return tr("TableView");				break;
@@ -449,24 +544,58 @@ QString JASPControl::ControlTypeToFriendlyString(ControlType controlType)
 	case ControlType::FactorsForm:					return tr("Factors Form");			break;
 	case ControlType::ComponentsList:				return tr("List of Components");	break;
 	case ControlType::GroupBox:						return tr("Group Box");				break;
+	case ControlType::TabView:						return tr("Tab View");				break;
+	case ControlType::VariablesForm:				return tr("Variables Form");		break;
 	}
 }
 
-QString JASPControl::helpMD(int howDeep) const
+QString JASPControl::helpMD(SetConst & markdowned, int howDeep, bool asList) const
 {
-	if(!isVisible())
+	if(!isEnabled())
 		return "";
+
+	markdowned.insert(this);
+		
+	Log::log() << "Generating markdown for control by name '" << name() << "', title '" << title() << "' and type: '" << JASPControl::ControlTypeToFriendlyString(controlType()) << "'.\n";
+
+	bool shouldChildrenBeAList;
+
+	switch(controlType())
+	{
+	case ControlType::GroupBox:
+	case ControlType::ComboBox:
+	case ControlType::RadioButtonGroup:
+	case ControlType::VariablesForm:
+		shouldChildrenBeAList = true;
+		break;
+
+	default:
+		shouldChildrenBeAList = false;
+		break;
+	}
+
+	if(controlType() == ControlType::Expander)
+		howDeep = 1; //When within a section we can go back to bigger titles. Together with howDeep++ right below here this ends up as default 2
 
 	howDeep++;
 	QStringList markdown, childMDs;
 
 	//First we determine if we have children, and if so if they contain anything.
-	QList<JASPControl*> children = _childControlsArea ? getChildJASPControls(_childControlsArea) : QList<JASPControl*>();
+	QList<JASPControl*> children =  getChildJASPControls(_childControlsArea ? _childControlsArea : this);
 
 	bool aControlThatEncloses = children.size() > 0;
+		
+	Log::log() << "Control encloses #" << children.size() << " children." << std::endl;
+
+	bool	childrenList = asList || shouldChildrenBeAList || howDeep > 6; //Headers in html only got 6 sizes so below that I guess we just turn it into bulletpoints?
+	int		newDeep = howDeep;
+
+	if(childrenList && !asList)
+		newDeep = 0;
 
 	for (JASPControl* childControl : children)
-		childMDs << childControl->helpMD(howDeep);
+		if(!markdowned.count(childControl))
+			childMDs << childControl->helpMD(markdowned, newDeep, childrenList);
 
 	QString childMD = childMDs.join("");
 
@@ -482,20 +611,31 @@ QString JASPControl::helpMD(int howDeep) const
 	if(aControlThatEncloses)
 		markdown << "\n\n";
 
-	if(howDeep > 6) markdown << "- "; //Headers in html only got 6 sizes so below that I guess we just turn it into bulletpoints?
-	else			markdown << QString{howDeep, '#'} + " "; // ;)
+	if(controlType() == ControlType::Expander)
+		markdown << "\n---\n";
 
-	//Ok removing the check for existence of wrapper because
+	if(asList)	markdown << QString{howDeep, ' '} + "- ";
+	else		markdown << QString{howDeep, '#' } + " "; // ;)
+
 	markdown << friendlyName();
 
 	if(title() != "")	markdown << " - *" + title() + "*:\n";
 	else				markdown << "\n";
 
+
 	markdown << info() + "\n";
 
 	markdown << childMD;
 
-	return markdown.join("") + "\n\n";
+	if(controlType() == ControlType::Expander)
+		markdown << "\n---\n";
+
+
+	QString md = markdown.join("") + "\n\n";
+		
+	Log::log() << "Generated: '" << md << "'\n";
+		
+	return md;
 }
 
 void JASPControl::setChildControlsArea(QQuickItem * childControlsArea)
@@ -530,6 +670,15 @@ void JASPControl::parentListViewKeyChanged(const QString &oldName, const QString
 {
 	if (oldName == _parentListViewKey)
 		_parentListViewKey = newName;
+}
+
+void JASPControl::setName(const QString &name)
+{
+	if (name != _name && checkOptionName(name))
+	{
+		_name = name;
+		emit nameChanged();
+	}
 }
 
 bool JASPControl::hasError() const
@@ -633,9 +782,20 @@ void JASPControl::rScriptDoneHandler(const QString &)
 	throw std::runtime_error("runRScript done but handler not implemented!\nImplement an override for RScriptDoneHandler\n");
 }
 
-
 void JASPControl::_setFocus()
 {
 	if (!hasActiveFocus())
 		setFocus(false);
+}
+
+void JASPControl::_notifyFormOfActiveFocus()
+{
+	if (!hasActiveFocus())
+		_hasActiveFocus = false;
+
+	//All JASP controls are focusscopes when they receive focus due to a child being clicked the reason is 8 for some reason (undocumented as of 3-1-2023)
+	//Objects like jasp groupboxes could unrightfully be marked as the active jasp control when a child jasp control gets focus
+	//For this reason we check if the focus reason is the result of user input or the focus scope system.
+	if (_form && _focusReason >= Qt::MouseFocusReason && _focusReason <= Qt::OtherFocusReason)
+		_form->setActiveJASPControl(this, hasActiveFocus());
 }

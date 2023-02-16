@@ -45,35 +45,30 @@ Json::Value BoundControlBase::createMeta()  const
 
 void BoundControlBase::setBoundValue(const Json::Value &value, bool emitChange)
 {
-	if (value == boundValue()) return;
-
 	AnalysisForm* form = _control->form();
 
-	if (form && _control->isBound())
+	if (!form || !_control->isBound() || value == boundValue()) return;
+
+	if (_isColumn && value.isString())
 	{
-		if (_isColumn && value.isString())
+		const Json::Value & orgValue = boundValue();
+		std::string			newName  = value.asString(),
+							orgName  = orgValue.asString();
+
+		if (newName.empty() && !orgName.empty())
+			emit _control->requestComputedColumnDestruction(orgName);
+
+		else if (newName != orgName)
 		{
-			const Json::Value & orgValue = boundValue();
-			std::string			newName  = value.asString(),
-								orgName  = orgValue.asString();
-			
-			if (newName.empty() && !orgName.empty())
+			if (_isComputedColumn)	emit _control->requestComputedColumnCreation(newName);
+			else					emit _control->requestColumnCreation(newName, _columnType);
+
+			if (!orgName.empty())
 				emit _control->requestComputedColumnDestruction(orgName);
-			
-			else if (newName != orgName)
-			{
-				if (_isComputedColumn)	emit _control->requestComputedColumnCreation(newName);
-				else					emit _control->requestColumnCreation(newName, _columnType);
-
-				if (!orgName.empty())
-					emit _control->requestComputedColumnDestruction(orgName);
-			}
 		}
-
-		form->setBoundValue(getName(), value, createMeta(), _control->getParentKeys());
 	}
-	else
-		emitChange = false;
+
+	form->setBoundValue(getName(), value, createMeta(), _control->getParentKeys());
 	
 	if (emitChange)	
 		emit _control->boundValueChanged(_control);
@@ -115,49 +110,40 @@ void BoundControlBase::_readTableValue(const Json::Value &value, const std::stri
 	{
 		std::vector<std::string> term;
 		const Json::Value& keyValue = row[key];
-		if (hasMultipleTerms)
+		if (keyValue.isArray())
 		{
-			if (keyValue.isArray())
-			{
-				for (const Json::Value& component : keyValue)
-					term.push_back(component.asString());
-				terms.add(Term(term));
-			}
-			else
-				Log::log() << "Key (" << key << ") bind value is not an array in " << getName() << ": " << value.toStyledString() << std::endl;
+			for (const Json::Value& component : keyValue)
+				term.push_back(component.asString());
 		}
+		else if (keyValue.isString())
+			term.push_back(keyValue.asString());
 		else
+			Log::log() << "Key (" << key << ") bind value is not an array or a string in " << getName() << ": " << value.toStyledString() << std::endl;
+
+		if (term.size() > 0)
 		{
-			if (keyValue.isString())
+			terms.add(Term(term));
+
+			QMap<QString, Json::Value> controlMap;
+			for (auto itr = row.begin(); itr != row.end(); ++itr)
 			{
-				term.push_back(keyValue.asString());
-				terms.add(Term(term));
+				const std::string& name = itr.key().asString();
+				if (name != key)
+					controlMap[tq(name)] = *itr;
 			}
-			else
-				Log::log() << "Key (" << key << ") bind value is not a string in " << getName() << ": " << value.toStyledString() << std::endl;
-		}
 
-		QMap<QString, Json::Value> controlMap;
-		for (auto itr = row.begin(); itr != row.end(); ++itr)
-		{
-			const std::string& name = itr.key().asString();
-			if (name != key)
-				controlMap[tq(name)] = *itr;
+			allControlValues[Term(term).asQString()] = controlMap;
 		}
-
-		allControlValues[Term(term).asQString()] = controlMap;
 	}
 }
 
-Json::Value BoundControlBase::_getTableValueOption(const ListModel::RowControlsValues& termsWithComponentValues, const std::string& key, bool hasMultipleTerms)
+Json::Value BoundControlBase::_getTableValueOption(const Terms& terms, const ListModel::RowControlsValues& componentValuesMap, const std::string& key, bool hasMultipleTerms)
 {
 	Json::Value result(Json::arrayValue);
-	ListModel::RowControlsValuesIterator it(termsWithComponentValues);
-	while (it.hasNext())
+
+	for (const Term& term : terms)
 	{
-		it.next();
-		Term term = Term::readTerm(it.key());
-		QMap<QString, Json::Value> componentValues = it.value();
+		QMap<QString, Json::Value> componentValues = componentValuesMap[term.asQString()];
 
 		Json::Value rowValues(Json::objectValue);
 		if (hasMultipleTerms)
@@ -185,8 +171,8 @@ Json::Value BoundControlBase::_getTableValueOption(const ListModel::RowControlsV
 	return result;
 }
 
-void BoundControlBase::_setTableValue(const ListModel::RowControlsValues& termsWithComponentValues, const std::string& key, bool hasMultipleTerms)
+void BoundControlBase::_setTableValue(const Terms& terms, const ListModel::RowControlsValues& componentValuesMap, const std::string& key, bool hasMultipleTerms)
 {
-	setBoundValue(_getTableValueOption(termsWithComponentValues, key, hasMultipleTerms));
+	setBoundValue(_getTableValueOption(terms, componentValuesMap, key, hasMultipleTerms));
 }
 

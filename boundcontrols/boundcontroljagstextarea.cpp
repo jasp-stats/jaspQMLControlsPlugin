@@ -49,8 +49,8 @@ bool BoundControlJAGSTextArea::isJsonValid(const Json::Value &value) const
 	if (!value.isObject())					return false;
 	if (!value["modelOriginal"].isString())	return false;
 	if (!value["model"].isString())			return false;
-	if (!value["columns"].isArray())		return false;
-	if (!value["parameters"].isArray())		return false;
+	//if (!value["columns"].isArray())		return false;
+	//if (!value["parameters"].isArray())		return false;
 
 	return true;
 }

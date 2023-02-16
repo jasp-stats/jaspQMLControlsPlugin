@@ -77,7 +77,11 @@ TextAreaBase
 					if (event.modifiers & Qt.ControlModifier)
 					{
 						if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+						{
 							userEnteredInput();
+							event.accepted = true;
+						}
+
 					}
 					else if ( event.key === Qt.Key_Tab)
 					{
@@ -112,6 +116,8 @@ TextAreaBase
 		horizontalAlignment:	Text.AlignHCenter
 		verticalAlignment:		Text.AlignVCenter
 		color:					!enabled ? jaspTheme.textDisabled : textArea.hasScriptError ? jaspTheme.textEnabled : jaspTheme.grayDarker
+		wrapMode:				Text.Wrap
+		width:					implicitWidth > textArea.width - 2 * anchors.margins ? textArea.width - 2 * anchors.margins : implicitWidth
 
 		Rectangle
 		{

@@ -21,7 +21,7 @@
 #include "controls/jasplistcontrol.h"
 #include "log.h"
 
-void ListModelAvailableInterface::initTerms(const Terms &terms, const RowControlsValues&)
+void ListModelAvailableInterface::initTerms(const Terms &terms, const RowControlsValues&, bool)
 {
 	beginResetModel();
 	
@@ -111,6 +111,8 @@ void ListModelAvailableInterface::sourceNamesChanged(QMap<QString, QString> map)
 {
 	ListModelDraggable::sourceNamesChanged(map);
 
+	// Not only the terms must be changed, but also the allTerms: allTerms keeps all terms that an
+	// available model can have: this is its own terms and the terms assigned in its assigned models.
 	QMap<QString, QString>	allTermsChangedMap;
 	QMapIterator<QString, QString> it(map);
 
@@ -185,8 +187,8 @@ void ListModelAvailableInterface::removeTermsInAssignedList()
 	{
 		Terms assignedTerms = modelAssign->terms();
 		if (assignedTerms.discardWhatIsntTheseTerms(_allSortedTerms))
-			modelAssign->initTerms(assignedTerms); // initTerms call removeTermsInAssignedList
-		else if (!modelAssign->copyTermsWhenDropped())
+			modelAssign->initTerms(assignedTerms, RowControlsValues(), true); // initTerms call removeTermsInAssignedList
+		if (!modelAssign->copyTermsWhenDropped())
 			newTerms.remove(assignedTerms);
 	}
 

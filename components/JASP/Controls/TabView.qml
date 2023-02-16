@@ -33,6 +33,7 @@ ComponentsListBase
 	addItemManually			: !source
 	minimumItems			: 1
 	newItemName				: qsTr("New tab")
+	controlType				: JASPControl.TabView
 
 	property alias	label				: tabView.title
 	property bool	showAddIcon			: addItemManually
@@ -119,7 +120,7 @@ ComponentsListBase
 				value				: model.name
 				fieldWidth			: parent.width
 				fieldHeight			: parent.height
-				onEditingFinished	: tabView.nameChanged(index, value)
+				onEditingFinished	: tabView.nameChanged(index, displayValue)
 
 				onActiveFocusChanged: if (!activeFocus) visible = false
 			}

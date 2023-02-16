@@ -29,13 +29,13 @@
 #include "boundcontrols/boundcontrollayers.h"
 #include "boundcontrols/boundcontrolterms.h"
 #include "boundcontrols/boundcontrolmultiterms.h"
+#include "utilities/desktopcommunicator.h"
 #include "rowcontrols.h"
 #include "analysisform.h"
 #include "sourceitem.h"
 #include <QTimer>
 #include <QQmlProperty>
 #include "log.h"
-#include "preferencesmodelbase.h"
 
 VariablesListBase::VariablesListBase(QQuickItem* parent)
 	: JASPListControl(parent)
@@ -76,7 +76,7 @@ void VariablesListBase::setUp()
 
 	_setAllowedVariables();
 
-	connect(PreferencesModelBase::prefs(), &PreferencesModelBase::currentJaspThemeChanged, this, &VariablesListBase::_setAllowedVariables);
+	connect(DesktopCommunicator::singleton(), &DesktopCommunicator::currentJaspThemeChanged, this, &VariablesListBase::_setAllowedVariables);
 
 	_draggableModel->setItemType(property("itemType").toString());
 	JASPControl::DropMode dropMode = JASPControl::DropMode(property("dropMode").toInt());
@@ -85,6 +85,8 @@ void VariablesListBase::setUp()
 	//We use macros here because the signals come from QML
 	QQuickItem::connect(this, SIGNAL(itemDoubleClicked(int)),						this, SLOT(itemDoubleClickedHandler(int)));
 	QQuickItem::connect(this, SIGNAL(itemsDropped(QVariant, QVariant, int)),		this, SLOT(itemsDroppedHandler(QVariant, QVariant, int)));
+	connect(this,	&VariablesListBase::allowedColumnsChanged,						this, &VariablesListBase::_setAllowedVariables);
+	connect(this,	&VariablesListBase::suggestedColumnsChanged,					this, &VariablesListBase::_setAllowedVariables);
 }
 
 
@@ -337,60 +339,53 @@ void VariablesListBase::termsChangedHandler()
 	else JASPListControl::termsChangedHandler();
 }
 
-
-int VariablesListBase::_getAllowedColumnsTypes()
-{
-	int allowedColumnsTypes = -1;
-
-	if (!allowedColumns().isEmpty())
-	{
-		allowedColumnsTypes = 0;
-		for (const QString& allowedColumn: allowedColumns())
-		{
-			columnType allowedType = columnTypeFromString(fq(allowedColumn), columnType::unknown);
-			if (allowedType != columnType::unknown)
-				allowedColumnsTypes |= int(allowedType);
-			else
-				addControlError(tr("Wrong column type: %1 for ListView %2").arg(allowedColumn).arg(name()));
-		}
-	}
-
-	return allowedColumnsTypes;
-}
-
 void VariablesListBase::_setAllowedVariables()
 {
-	if (suggestedColumns().empty() && !allowedColumns().empty())
-		setSuggestedColumns(allowedColumns());
-	else if (allowedColumns().empty() && !suggestedColumns().empty())
+	QSet<QString> implicitAllowedTypes;
+
+	// The implicitAllowedTypes is either the allowedColumns if they are explicitely defined
+	// or the suggestedColumns with extra permitted types, with these rules:
+	// . if suggestedType contains the scale type, then nomincal & ordinal types are then also allowed.
+	// . if suggestedType contains the nomincal type, then nominalText & ordinal types are also allowed.
+
+	auto listToSet = [](QStringList l) { return QSet<QString> (l.constBegin(), l.constEnd()); };
+	if (!allowedColumns().empty())
+		implicitAllowedTypes = listToSet(allowedColumns());
+	else if (!suggestedColumns().empty())
 	{
-		QStringList newAllowedColumns = suggestedColumns();
+		implicitAllowedTypes = listToSet(suggestedColumns());
 		if (suggestedColumns().contains("scale"))
 		{
-			if (!newAllowedColumns.contains("nominal"))			newAllowedColumns.push_back("nominal");
-			if (!newAllowedColumns.contains("ordinal"))			newAllowedColumns.push_back("ordinal");
+			implicitAllowedTypes.insert("nominal");
+			implicitAllowedTypes.insert("ordinal");
 		}
 		if (suggestedColumns().contains("nominal"))
 		{
-			if (!newAllowedColumns.contains("nominalText"))		newAllowedColumns.push_back("nominalText");
-			if (!newAllowedColumns.contains("ordinal"))			newAllowedColumns.push_back("ordinal");
+			implicitAllowedTypes.insert("nominalText");
+			implicitAllowedTypes.insert("ordinal");
 		}
-		setAllowedColumns(newAllowedColumns);
+		setAllowedColumns(implicitAllowedTypes.values());
 	}
 
-	int allowedColumnsTypes = _getAllowedColumnsTypes();
+	_variableTypesAllowed.clear();
+	for (const QString& typeStr: implicitAllowedTypes)
+		_variableTypesAllowed.insert(columnTypeFromString(fq(typeStr), columnType::unknown));
 
-	if (allowedColumnsTypes >= 0)
-		_variableTypesAllowed = allowedColumnsTypes;
-
-	QStringList iconList;
-	for (const QString& suggectedType : suggestedColumns())
+	// The suggectedColumnsIcons indicates which columns are allowed in the VariableList view.
+	// It shows per default the suggested columns list, but if empty, it shows the alloaed columns list.
+	QStringList iconTypeList,
+				columnTypes = suggestedColumns().isEmpty() ?  allowedColumns() : suggestedColumns();
+	for (const QString& columnTypeStr : columnTypes)
 	{
-		columnType type = columnTypeFromString(fq(suggectedType), columnType::unknown);
+		columnType type = columnTypeFromString(fq(columnTypeStr), columnType::unknown);
 		if (type != columnType::unknown)
-			iconList.push_back(VariableInfo::getIconFile(type, VariableInfo::InactiveIconType));
+			iconTypeList.push_back(VariableInfo::getIconFile(type, VariableInfo::InactiveIconType));
 	}
-	setSuggestedColumnsIcons(iconList);
+	setSuggestedColumnsIcons(iconTypeList);
+
+	if (form() && form()->initialized())
+		// If the allowed columns have changed, then refresh the model so that columns that are not allowed anymore are removed.
+		model()->refresh();
 }
 
 void VariablesListBase::_setRelations()
@@ -411,7 +406,6 @@ void VariablesListBase::_setRelations()
 				addDependency(availableModel->listView());
 				setContainsVariables();
 				setContainsInteractions();
-
 			}
 		}
 	}

@@ -16,7 +16,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import QtQuick			2.11
+import QtQuick
 import QtQuick.Controls 2.4
 import QtQuick.Layouts	1.3
 import JASP				1.0
@@ -32,10 +32,9 @@ TextInputBase
 	title:				text
 	
 	property alias	control:			control
-	property alias	label:				beforeLabel.text
-	property alias	text:				beforeLabel.text
-	property alias	value:				control.text
-	property string lastValidValue:		defaultValue
+	property alias	text:				textField.label
+	property alias	displayValue:		control.text	///< In onEditingFinished this contains the "value" entered by the user
+	property var	lastValidValue:		defaultValue
 	property int	fieldWidth:			jaspTheme.textFieldWidth
 	property int	fieldHeight:		0
 	property bool	useExternalBorder:	!parentListView
@@ -46,23 +45,22 @@ TextInputBase
 
 	property alias	validator:			control.validator
 	property alias	controlLabel:		beforeLabel
-	property alias	afterLabel:			afterLabel.text
 	property string	inputType:			"string"
 	property bool	useLastValidValue:	true
 	property bool	editable:			true
 
 	property double controlXOffset:		0
 
-	signal editingFinished()
+	signal editingFinished()	///< To get the entered value use `displayValue` in the slot instead of `value`
 	signal textEdited()
 	signal pressed(var event)
 	signal released(var event)
 
 	function doEditingFinished()
 	{
-		if (control.text === "" && defaultValue !== undefined && String(defaultValue) !== "")
-			control.text = defaultValue;
-		lastValidValue = control.text
+		if (displayValue === "" && defaultValue !== undefined && String(defaultValue) !== "")
+			displayValue = defaultValue;
+		lastValidValue = displayValue
 		editingFinished();
 	}
 	
@@ -75,33 +73,47 @@ TextInputBase
 		control.textEdited.connect(textEdited);
 		control.pressed.connect(pressed);
 		control.released.connect(released);
-		lastValidValue = control.text;
+		if (control.text)
+			lastValidValue = control.text;
 	}
 
-	onInitializedChanged: if (initialized) checkValue(false)
+	// The value should be checked only when the control is initialized.
+	// But even if initialized, the constraints (e.g min or max) might change afterwards, if these constraints depend on other controls.
+	// In this case the error must be removed: this is done via the onAcceptableInputChanged which calls the checkValue.
+	onInitializedChanged: if (initialized) checkValue(false, false)
 
-	function checkValue(resetLastValidValue)
+	function checkValue(resetLastValidValue, addErrorIfNotFocussed)
 	{
-		if (control.acceptableInput) return true;
+		if (!initialized && isBound) return false
 
-		var msg
-		if (control.validator && (typeof control.validator.validationMessage === "function"))
-			msg = control.validator.validationMessage(beforeLabel.text)
+		if (control.acceptableInput)
+		{
+			if (!hasScriptError)
+				clearControlError();
+			return true;
+		}
+
+		if (addErrorIfNotFocussed && activeFocus) return false
+		if (!control.validator || (typeof control.validator.validationMessage !== "function")) return false;
+
+		var msg = control.validator.validationMessage(beforeLabel.text)
 
 		if (resetLastValidValue)
 		{
 			if (textField.useLastValidValue)
-				control.text = textField.lastValidValue
+				value = textField.lastValidValue
 			msg += "<br><br>"
-			msg += qsTr("Restoring last correct value: %1").arg(text);
+			msg += qsTr("Restoring last correct value: %1").arg(value);
 			addControlErrorTemporary(msg)
 		}
 		else
-			addControlError(control.validator.validationMessage(beforeLabel.text))
+			addControlError(msg)
 
 		return false
 	}
-		
+
+
+
 	Rectangle
 	{
 		id:					beforeLabelRect
@@ -115,6 +127,7 @@ TextInputBase
 			font:					jaspTheme.font
 			anchors.verticalCenter: parent.verticalCenter
 			color:					enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled
+			text:					textField.label
 		}
 	}
 
@@ -136,6 +149,17 @@ TextInputBase
 		selectionColor:			jaspTheme.itemSelectedColor
 		enabled:				textField.editable
 		// text property is set by TextInpoutBase
+
+		ToolTip.text		: control.text
+		ToolTip.timeout		: jaspTheme.toolTipTimeout
+		ToolTip.delay		: !hovered ? 0 : jaspTheme.toolTipDelay
+		ToolTip.visible		: contentWidth > width - leftPadding - rightPadding && (hovered || control.activeFocus)
+
+		// The acceptableInput is checked even if the user is still typing in the TextField.
+		// In this case, the error should not appear immediately (only when the user is pressing the return key, or going out of focus),
+		// so the checkValue is called with addErrorIfNotFocussed set to true: it should not display an error if in focus.
+		// In not in focus, the acceptableInput can be changed because another control has changed the constraint of this control: in this case, the error should be displayed.
+		onAcceptableInputChanged: checkValue(false, true)
 
 		background: Rectangle
 		{
@@ -166,21 +190,16 @@ TextInputBase
 				if (textField.selectValueOnFocus)
 					control.selectAll()
 			}
-
-			if (checkValue(true))
-			{
-				if (!hasScriptError)
-					clearControlError()
-			}
+			else
+				// When going out of focus, the value must be checked. If the value is wrong, the last valid value should replace the wrong value.
+				checkValue(true, false)
 		}
 
 		Keys.onReturnPressed: (event)=>
 		{
-			if (checkValue(false))
+			// When pressing the return key, the value should be checked: if the value is wrong, an error should appear and the focus should stay on this control.
+			if (checkValue(false, false))
 			{
-				if (!hasScriptError)
-					clearControlError();
-
 				var nextItem = nextItemInFocusChain();
 				if (nextItem)
 					nextItem.forceActiveFocus();
@@ -188,7 +207,6 @@ TextInputBase
 				event.accepted = false;
 			}
 		}
-
 	}
 
 	Binding
@@ -216,6 +234,7 @@ TextInputBase
 			font:		jaspTheme.font
 			anchors.verticalCenter: parent.verticalCenter
 			color:		enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled
+			text:		textField.afterLabel
 		}
 	}
 }

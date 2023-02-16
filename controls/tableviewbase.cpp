@@ -123,6 +123,12 @@ void TableViewBase::removeRow(int row)
 		_tableModel->removeRow(row);
 }
 
+void TableViewBase::setSize(int rows, int columns)
+{
+	if (_tableModel)
+		_tableModel->setSize(rows, columns);
+}
+
 void TableViewBase::reset()
 {
 	if (_tableModel)
@@ -199,24 +205,24 @@ QVariant TableViewBase::defaultValue(int colIndex, int rowIndex)
 								  Q_ARG(QVariant, rowIndex));
 	}
 	// Force the QVariant to have the right type
-	switch (itemType())
+	switch (itemTypePerItem(colIndex, rowIndex))
 	{
 	case JASPControl::ItemType::Integer:
 	{
-		if (defValue.type() == QVariant::Int)		return defValue;
-		if (defValue.canConvert(QVariant::Int))	return defValue.toInt();
+		if (defValue.typeId() == QMetaType::Int)		return defValue;
+		if (defValue.canConvert<int>())					return defValue.toInt();
 		break;
 	}
 	case JASPControl::ItemType::Double:
 	{
-		if (defValue.type() == QVariant::Double)	return defValue;
-		if (defValue.canConvert(QVariant::Double))	return defValue.toDouble();
+		if (defValue.typeId() == QMetaType::Double)		return defValue;
+		if (defValue.canConvert<double>())				return defValue.toDouble();
 		break;
 	}
 	case JASPControl::ItemType::String:
 	{
-		if (defValue.type() == QVariant::String)	return defValue;
-		if (defValue.canConvert(QVariant::String))	return defValue.toString();
+		if (defValue.typeId() == QMetaType::QString)	return defValue;
+		if (defValue.canConvert<QString>())				return defValue.toString();
 		break;
 	}
 	}

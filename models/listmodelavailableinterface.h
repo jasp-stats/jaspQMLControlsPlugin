@@ -34,8 +34,8 @@ public:
 	ListModelAvailableInterface(JASPListControl* listView)
 		: ListModelDraggable(listView) {}
 	
-	virtual const Terms& allTerms()																						const { return _allSortedTerms; }
-			void initTerms(const Terms &terms, const RowControlsValues& _rowControlsValues = RowControlsValues())	override;
+	virtual const Terms& allTerms()																											const { return _allSortedTerms; }
+			void initTerms(const Terms &terms, const RowControlsValues& _rowControlsValues = RowControlsValues(), bool reInit = false)	override;
 	virtual void resetTermsFromSources(bool updateAssigned = true)			= 0;
 	virtual void removeTermsInAssignedList();
 	
@@ -55,6 +55,7 @@ public slots:
 			bool sourceLabelsChanged(QString columnName, QMap<QString, QString> = {})		override;
 			bool sourceLabelsReordered(QString columnName)									override;
 			void removeAssignedModel(ListModelDraggable* model);
+			void clearAssignedModels() { _assignedModels.clear(); }
 
 protected:
 	Terms								_allTerms;

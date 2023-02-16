@@ -51,6 +51,24 @@ void ComponentsListBase::bindTo(const Json::Value& value)
 	_termsModel->initTerms(terms, allControlValues);
 }
 
+void ComponentsListBase::setUp()
+{
+	JASPListControl::setUp();
+
+	QQuickItem* ancestor = parentItem();
+	while (ancestor)
+	{
+		JASPControl* control = qobject_cast<JASPControl*>(ancestor);
+		if (control && control->dependsOnDynamicComponents())
+		{
+			control->addDependency(this);
+			return;
+		}
+
+		ancestor = ancestor->parentItem();
+	}
+}
+
 Json::Value ComponentsListBase::createJson() const
 {
 	std::string keyName = fq(_optionKey);
@@ -111,12 +129,12 @@ Json::Value ComponentsListBase::createJson() const
 				if (name != _optionKey)
 				{
 					QVariant valueVar = it.value();
-					switch (valueVar.type())
+					switch (valueVar.typeId())
 					{
-					case QVariant::Int:		row[fq(name)] = valueVar.toInt();			break;
-					case QVariant::Double:	row[fq(name)] = valueVar.toDouble();		break;
-					case QVariant::Bool:	row[fq(name)] = valueVar.toBool();			break;
-					case QVariant::String:	row[fq(name)] = fq(valueVar.toString());	break;
+					case QMetaType::Int:		row[fq(name)] = valueVar.toInt();			break;
+					case QMetaType::Double:		row[fq(name)] = valueVar.toDouble();		break;
+					case QMetaType::Bool:		row[fq(name)] = valueVar.toBool();			break;
+					case QMetaType::QString:	row[fq(name)] = fq(valueVar.toString());	break;
 					default:
 					{
 						if (valueVar.canConvert<QString>())	row[fq(name)] = fq(valueVar.toString());
@@ -185,12 +203,16 @@ bool ComponentsListBase::isJsonValid(const Json::Value &value) const
 
 void ComponentsListBase::termsChangedHandler()
 {
-	_setTableValue(_termsModel->getTermsWithComponentValues(), fq(_optionKey), containsInteractions());
+	_setTableValue(_termsModel->terms(), _termsModel->getTermsWithComponentValues(), fq(_optionKey), containsInteractions());
 }
 
-Json::Value ComponentsListBase::getConditionalTermsOptions(const ListModel::RowControlsValues &conditionalTermsMap)
+Json::Value ComponentsListBase::getJsonFromComponentValues(const ListModel::RowControlsValues &termsWithComponentValues)
 {
-	return _getTableValueOption(conditionalTermsMap, fq(_optionKey), containsInteractions());
+	Terms terms;
+	for (const QString& term : termsWithComponentValues.keys())
+		terms.add(Term::readTerm(term));
+
+	return _getTableValueOption(terms, termsWithComponentValues, fq(_optionKey), containsInteractions());
 }
 
 void ComponentsListBase::addItemHandler()
@@ -203,20 +225,25 @@ void ComponentsListBase::addItemHandler()
 	if (_duplicateWhenAdding)
 	{
 		QMap<QString, Json::Value> jsonValues;
-		const Json::Value& boundVal = boundValue();
-		int currentIndex = property("currentIndex").toInt();
-		const Terms& terms = _termsModel->terms();
+		
+		const Json::Value	&	boundVal		= boundValue();
+		int						currentIndex	= property("currentIndex").toInt();
+		const Terms			&	terms			= _termsModel->terms();
+		
 		if (boundVal.isArray() && int(terms.size()) >= currentIndex)
 		{
 			std::string keyString = terms.at(size_t(currentIndex)).asString();
+			
 			for (const Json::Value& jsonVal : boundVal)
 			{
 				const Json::Value& keyVal = jsonVal.get(fq(_optionKey), Json::nullValue);
+				
 				if (keyVal.asString() == keyString)
 				{
 					for (const std::string& member : jsonVal.getMemberNames())
 						jsonValues[tq(member)] = jsonVal.get(member, Json::nullValue);
 				}
+				
 				jsonValues[_optionKey] = fq(newTerm);
 			}
 		}
@@ -265,8 +292,9 @@ void ComponentsListBase::nameChangedHandler(int index, QString name)
 QString ComponentsListBase::_changeLastNumber(const QString &val) const
 {
 	QString result = val;
-	int index = val.length() - 1;
-	for (; index >= 0 ; index--)
+	
+	int index;
+	for (index = val.length() - 1; index >= 0 ; index--)
 	{
 		if (!val.at(index).isDigit())
 			break;

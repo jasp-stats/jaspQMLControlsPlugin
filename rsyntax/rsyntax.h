@@ -37,21 +37,21 @@ public:
 	QVariantList					controlNameToRSyntaxMap()						const;
 	bool							setControlNameToRSyntaxMap(const QVariantList& conv);
 
-	QString							generateSyntax()								const;
+	QString							generateSyntax(bool showAllOptions = true)		const;
 	QString							generateWrapper()								const;
 	QString							getRSyntaxFromControlName(JASPControl* control)	const;
 	QString							getRSyntaxFromControlName(const QString& name)	const;
 	QString							getControlNameFromRSyntax(const QString& name)	const;
 	void							setUp();
-	void							addFormula(FormulaBase* formula)							{ _formulas.append(formula);	}
+	void							addFormula(FormulaBase* formula);
+	FormulaBase*					getFormula(const QString& name)					const;
 	bool							parseRSyntaxOptions(Json::Value& options)		const;
 	void							addError(const QString& msg)					const;
 	bool							hasError()										const;
 
 	static QString					FunctionOptionIndent,
 									FunctionLineIndent;
-	static QString					transformJsonToR(const Json::Value& json, const Json::Value& comparedValue = Json::nullValue);
-	static QString					transformInteractionTerms(const Terms& terms, bool useFormula = true);
+	static QString					transformJsonToR(const Json::Value& json);
 
 signals:
 	void							somethingChanged();
@@ -59,10 +59,12 @@ signals:
 
 private:
 
-	QString							_analysisFullName(bool wrapper = false)		const;
+	QString							_analysisFullName()											const;
+	QString							_transformInteractionTerms(ListModel* model)				const;
+	bool							_areTermsVariables(ListModel* model, const Terms& terms)	const;
 
 	AnalysisForm*					_form							= nullptr;
-	QVector<FormulaBase*>				_formulas;
+	QVector<FormulaBase*>			_formulas;
 	QMap<QString, QString>			_controlNameToRSyntaxMap;
 	QMap<QString, QString>			_rSyntaxToControlNameMap;
 };

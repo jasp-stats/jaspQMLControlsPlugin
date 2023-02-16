@@ -9,7 +9,7 @@ PreferencesModelBase::PreferencesModelBase(QObject *parent)
 	_singleton = this;
 }
 
-PreferencesModelBase *PreferencesModelBase::prefs()
+PreferencesModelBase *PreferencesModelBase::preferences()
 {
 	if (_singleton == nullptr)
 		_singleton = new PreferencesModelBase();
@@ -21,4 +21,3 @@ void PreferencesModelBase::currentThemeNameHandler()
 {
 	setCurrentThemeName(JaspTheme::currentTheme()->themeName());
 }
-

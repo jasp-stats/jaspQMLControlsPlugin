@@ -4,8 +4,18 @@
 #include "utilities/qmlutils.h"
 
 const std::string AnalysisBase::emptyString;
+const stringvec AnalysisBase::emptyStringVec;
 
-AnalysisBase::AnalysisBase(QObject* parent) : QObject(parent)
+AnalysisBase::AnalysisBase(QObject* parent, Version moduleVersion)
+	: QObject(parent)
+	, _moduleVersion(moduleVersion)
+{
+}
+
+AnalysisBase::AnalysisBase(QObject* parent, AnalysisBase* duplicateMe)
+	: QObject(parent)
+	, _moduleVersion(duplicateMe->moduleVersion())
+	, _boundValues(duplicateMe->boundValues())
 {
 }
 
@@ -39,13 +49,21 @@ void AnalysisBase::createForm(QQuickItem* parentItem)
 	Log::log() << "Analysis(" << this << ")::createForm() called with parentItem " << parentItem << std::endl;
 
 	setQmlError("");
+	
+	if(parentItem)
+		_parentItem = parentItem;
 
 	if(_analysisForm)
 	{
 		Log::log() << "It already has a form, so we destroy it." << std::endl;
-		if (!parentItem) parentItem = _analysisForm->parentItem();
+		
+		if (!parentItem) 
+			parentItem = _analysisForm->parentItem();
+		
 		destroyForm();
 	}
+	else if(!parentItem)
+		parentItem = _parentItem;
 
 	try
 	{
@@ -66,7 +84,12 @@ void AnalysisBase::createForm(QQuickItem* parentItem)
 
 		emit formItemChanged();
 	}
-	catch(std::exception e)
+	catch(qmlLoadError & e)
+	{
+		setQmlError(e.what());
+		_analysisForm = nullptr;
+	}
+	catch(std::exception & e)
 	{
 		setQmlError(e.what());
 		_analysisForm = nullptr;
@@ -133,7 +156,7 @@ Json::Value& AnalysisBase::_getParentBoundValue(const QVector<JASPControl::Paren
 					{
 						Json::Value &val = boundValue[parent.key];
 						// The value can be a string or an array of strings (for interaction terms)
-						if (val.isString() && parent.value.size() > 0)
+						if (val.isString() && parent.value.size() == 1)
 						{
 							if (val.asString() == parent.value[0])	found = true;
 						}

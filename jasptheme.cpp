@@ -1,6 +1,7 @@
 #include "jasptheme.h"
 #include "log.h"
 #include "utilities/qutils.h"
+#include "preferencesmodelbase.h"
 #include <QFontDatabase>
 
 JaspTheme			*	JaspTheme::_currentTheme	= nullptr;
@@ -10,11 +11,6 @@ std::map<QString, JaspTheme *> JaspTheme::_themes;
 
 JaspTheme::JaspTheme(QQuickItem * parent) : QQuickItem(parent)
 {
-	connect(this,							&JaspTheme::currentThemeNameChanged,			PreferencesModelBase::prefs(),		&PreferencesModelBase::currentThemeNameHandler	);
-	connect(this,							&JaspTheme::currentThemeReady,					PreferencesModelBase::prefs(),		&PreferencesModelBase::currentThemeReady		);
-	connect(PreferencesModelBase::prefs(),	&PreferencesModelBase::uiScaleChanged,			this,								&JaspTheme::uiScaleHandler						);
-	connect(PreferencesModelBase::prefs(),	&PreferencesModelBase::maxFlickVelocityChanged, this,								&JaspTheme::maximumFlickVelocityChanged			);
-
 	connectSizeDistancesToUiScaleChanged();
 
 	if(_currentTheme == nullptr)
@@ -121,9 +117,15 @@ void JaspTheme::setCurrentThemeFromName(QString name)
 	setCurrentTheme(_themes[name]);
 }
 
+void JaspTheme::initializeUIScales()
+{
+	for(auto& keyval : _themes)
+		keyval.second->uiScaleHandler();
+}
+
 void JaspTheme::setRibbonScaleHovered(float ribbonScaleHovered)
 {
-
+	
 	if (qFuzzyCompare(_ribbonScaleHovered, ribbonScaleHovered))
 		return;
 
@@ -643,6 +645,15 @@ void JaspTheme::setSliderPartOff(QColor sliderPartOff)
 
 	_sliderPartOff = sliderPartOff;
 	emit sliderPartOffChanged(_sliderPartOff);
+}
+
+void JaspTheme::setAltNavTagColor(QColor altNavTagColor)
+{
+	if (_altNavTagColor == altNavTagColor)
+		return;
+
+	_altNavTagColor = altNavTagColor;
+	emit altNavTagColorChanged(_altNavTagColor);
 }
 
 void JaspTheme::setBorderRadius(theme_distanceType borderRadius)
@@ -1246,6 +1257,15 @@ void JaspTheme::setFontCode(QFont fontCode)
 	emit fontCodeChanged(_fontCode);
 }
 
+void JaspTheme::setFontALTNavTag(QFont fontALTNavTag)
+{
+	if (_fontALTNavTag == fontALTNavTag)
+		return;
+
+	_fontALTNavTag = fontALTNavTag;
+	emit fontALTNavTagChanged(_fontALTNavTag);
+}
+
 void JaspTheme::setIsDark(bool isDark)
 {
 	if (_isDark == isDark)
@@ -1257,7 +1277,14 @@ void JaspTheme::setIsDark(bool isDark)
 
 void JaspTheme::uiScaleHandler()
 {
-	emit uiScaleChanged(PreferencesModelBase::prefs()->uiScale());
+	_uiScale = PreferencesModelBase::preferences()->uiScale();
+	emit uiScaleChanged(_uiScale);
+}
+
+void JaspTheme::maxFlickVeloHandler()
+{
+	_maximumFlickVelocity = PreferencesModelBase::preferences()->maxFlickVelocity();
+	emit maximumFlickVelocityChanged();
 }
 
 QString JaspTheme::currentIconPath()

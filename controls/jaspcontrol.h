@@ -25,7 +25,7 @@ class JASPControl : public QQuickItem
 	Q_PROPERTY( QString								title					READ title					WRITE setTitle					NOTIFY titleChanged					) //Basically whatever a human sees on their screen when they look at this specific item.
 	Q_PROPERTY( QString								info					READ info					WRITE setInfo					NOTIFY infoChanged					)
 	Q_PROPERTY( QString								toolTip					READ toolTip				WRITE setToolTip				NOTIFY toolTipChanged				)
-	Q_PROPERTY( QString								helpMD					READ helpMD													NOTIFY helpMDChanged				)
+	Q_PROPERTY( QString								helpMD					READ helpMDControl											NOTIFY helpMDChanged				)
 	Q_PROPERTY( bool								isBound					READ isBound				WRITE setIsBound				NOTIFY isBoundChanged				)
 	Q_PROPERTY( bool								indent					READ indent					WRITE setIndent					NOTIFY indentChanged				)
 	Q_PROPERTY( bool								isDependency			READ isDependency			WRITE setIsDependency			NOTIFY isDependencyChanged			)
@@ -48,8 +48,11 @@ class JASPControl : public QQuickItem
 	Q_PROPERTY( int									cursorShape				READ cursorShape			WRITE setCursorShape												)
 	Q_PROPERTY( bool								hovered					READ hovered												NOTIFY hoveredChanged				)
 	Q_PROPERTY( int									alignment				READ alignment				WRITE setAlignment													)
+	Q_PROPERTY( Qt::FocusReason						focusReason				READ getFocusReason																				)
 
-	typedef std::set<JASPControl*> Set;
+protected:
+	typedef std::set<JASPControl*>			Set;
+	typedef std::set<const JASPControl*>	SetConst;
 
 public:
 	struct ParentKey
@@ -88,7 +91,7 @@ public:
 	enum class Inclusive		{ None				= 0,															MinMax, MinOnly, MaxOnly };
 	enum class DropMode			{ DropNone			= static_cast<int>(Inclusive::MaxOnly)					+ 1,	DropInsert, DropReplace };
 	enum class ListViewType		{ AssignedVariables = static_cast<int>(DropMode::DropReplace)				+ 1,	Interaction, AvailableVariables, RepeatedMeasures, Layers, AvailableInteraction };
-	enum class CombinationType	{ NoCombination =	static_cast<int>(ListViewType::AvailableInteraction)	+ 1,	CombinationCross, CombinationInteraction, Combination2Way, Combination3Way, Combination4Way, Combination5Way };
+	enum class CombinationType	{ NoCombination		= static_cast<int>(ListViewType::AvailableInteraction)	+ 1,	CombinationCross, CombinationInteraction, Combination2Way, Combination3Way, Combination4Way, Combination5Way };
 	enum class TextType			{ TextTypeDefault	= static_cast<int>(CombinationType::Combination5Way)	+ 1,	TextTypeModel, TextTypeRcode, TextTypeJAGSmodel, TextTypeSource, TextTypeLavaan, TextTypeCSem };
 	enum class ModelType		{ Simple			= static_cast<int>(TextType::TextTypeLavaan)			+ 1,	GridInput, CustomContrasts, MultinomialChi2Model, JAGSDataInputModel, FilteredDataEntryModel };
 	enum class ItemType			{ String			= static_cast<int>(ModelType::FilteredDataEntryModel)	+ 1,	Integer, Double	};
@@ -105,43 +108,46 @@ public:
 	JASPControl(QQuickItem *parent = nullptr);
 	~JASPControl(); //Disconnecting signals right before destroying the object avoids some crashes with qt >= 6.3 on macos m1
 
-	ControlType			controlType()				const	{ return _controlType;			}
-	const QString	&	name()						const	{ return _name;					}
-	QString				title()						const	{ return _title;				}
-	QString				info()						const	{ return _info;					}
-	QString				toolTip()					const	{ return _toolTip;				}
-	QString				helpMD(int howDeep = 2)		const;
-	bool				isBound()					const	{ return _isBound;				}
-	bool				nameMustBeUnique()			const	{ return _nameMustBeUnique;		}
-	bool				indent()					const	{ return _indent;				}
-	bool				isDependency()				const	{ return _isDependency;			}
-	bool				initialized()				const	{ return _initialized;			}
+	ControlType			controlType()				const	{ return _controlType;				}
+	const QString	&	name()						const	{ return _name;						}
+	QString				title()						const	{ return _title;					}
+	QString				info()						const	{ return _info;						}
+	QString				toolTip()					const	{ return _toolTip;					}
+	QString				helpMDControl()				const	{ SetConst tmp; return helpMD(tmp);	} ///< If someone want to get it from qml they can this way.
+	virtual QString		helpMD(SetConst & markdowned, int howDeep = 2, bool asList = false)	const;
+	bool				isBound()					const	{ return _isBound;					}
+	bool				nameIsOptionValue()			const	{ return _nameIsOptionValue;		}
+	bool				indent()					const	{ return _indent;					}
+	bool				isDependency()				const	{ return _isDependency;				}
+	bool				initialized()				const	{ return _initialized;				}
 	bool				initializedFromJaspFile()	const	{ return _initializedFromJaspFile;	}
-	bool				shouldShowFocus()			const	{ return _shouldShowFocus;		}
-	bool				shouldStealHover()			const	{ return _shouldStealHover;		}
-	bool				debug()						const	{ return _debug;				}
-	bool				parentDebug()				const	{ return _parentDebug;			}
+	bool				shouldShowFocus()			const	{ return _shouldShowFocus;			}
+	bool				shouldStealHover()			const	{ return _shouldStealHover;			}
+	bool				debug()						const	{ return _debug;					}
+	bool				parentDebug()				const	{ return _parentDebug;				}
 	bool				hasError()					const;
 	bool				hasWarning()				const;
 	bool				childHasError()				const;
 	bool				childHasWarning()			const;
-	bool				focusOnTab()				const	{ return activeFocusOnTab();	}
+	bool				focusOnTab()				const	{ return activeFocusOnTab();		}
 	bool				hasUserInteractiveValue()	const	{ return _hasUserInteractiveValue;	}
 
-	AnalysisForm	*	form()						const	{ return _form;					}
-	QQuickItem		*	childControlsArea()			const	{ return _childControlsArea;	}
-	JASPListControl	*	parentListView()			const	{ return _parentListView;		}
+	AnalysisForm	*	form()						const	{ return _form;						}
+	QQuickItem		*	childControlsArea()			const	{ return _childControlsArea;		}
+	JASPListControl	*	parentListView()			const	{ return _parentListView;			}
 	JASPControl		*	parentListViewEx()			const;
-	QString				parentListViewKey()			const	{ return _parentListViewKey;	}
-	QQuickItem		*	innerControl()				const	{ return _innerControl;			}
-	QQuickItem		*	background()				const	{ return _background;			}
-	QQuickItem		*	focusIndicator()			const	{ return _focusIndicator;		}
-	QStringList			dependencyMustContain()		const	{ return _dependencyMustContain; }
-	int					preferredHeight()			const	{ return _preferredHeight;		}
-	int					preferredWidth()			const	{ return _preferredWidth;		}
-	int					cursorShape()				const	{ return _cursorShape;			}
+	QString				parentListViewKey()			const	{ return _parentListViewKey;		}
+	QQuickItem		*	innerControl()				const	{ return _innerControl;				}
+	QQuickItem		*	background()				const	{ return _background;				}
+	QQuickItem		*	focusIndicator()			const	{ return _focusIndicator;			}
+	QStringList			dependencyMustContain()		const	{ return _dependencyMustContain;	}
+	int					preferredHeight()			const	{ return _preferredHeight;			}
+	int					preferredWidth()			const	{ return _preferredWidth;			}
+	int					cursorShape()				const	{ return _cursorShape;				}
 	bool				hovered()					const;
-	int					alignment()					const	{ return _alignment;			}
+	int					alignment()					const	{ return _alignment;				}
+	Qt::FocusReason		getFocusReason()			const	{ return _focusReason;				}
+	bool				dependsOnDynamicComponents() const	{ return _dependsOnDynamicComponents; }
 
 	QString				humanFriendlyLabel()		const;
 	void				setInitialized(bool byFile = false);
@@ -168,7 +174,6 @@ public:
 protected:
 	Set								_depends; //So Joris changed this to a set instead of a vector because that is what it seemed to be, the order isn't important right?
 
-
 public slots:
 	void	setControlType(			ControlType			controlType)		{ _controlType = controlType; }
 	void	setChildControlsArea(	QQuickItem		*	childControlsArea);
@@ -191,8 +196,8 @@ public slots:
 
 	void	reconnectWithYourChildren();
 	void	parentListViewKeyChanged(const QString& oldName, const QString& newName);
+	void	setName(const QString& name);
 
-	GENERIC_SET_FUNCTION(Name					, _name					, nameChanged					, QString		)
 	GENERIC_SET_FUNCTION(Info					, _info					, infoChanged					, QString		)
 	GENERIC_SET_FUNCTION(ToolTip				, _toolTip				, toolTipChanged				, QString		)
 	GENERIC_SET_FUNCTION(Title					, _title				, titleChanged					, QString		)
@@ -212,6 +217,8 @@ private slots:
 	void	_hoveredChangedSlot() { emit hoveredChanged(); }
 	void	_resetBindingValue();
 	void	_setFocus();
+	void	_notifyFormOfActiveFocus();
+	void	_checkControlName();
 
 signals:
 	void setOptionBlockSignal(	bool blockSignal);
@@ -251,6 +258,9 @@ protected:
 	void				_setType();
 	void				setCursorShape(int shape);
 	void				setParentDebugToChildren(bool debug);
+	void				focusInEvent(QFocusEvent* event) override;
+	bool				eventFilter(QObject *watched, QEvent *event) override;
+	bool				checkOptionName(const QString& name);
 
 protected:
 	ControlType				_controlType;
@@ -272,8 +282,9 @@ protected:
 							_useControlMouseArea		= true,
 							_shouldShowFocus			= false,
 							_shouldStealHover			= false,
-							_nameMustBeUnique			= true,
-							_hasUserInteractiveValue	= true;
+							_nameIsOptionValue			= false,
+							_hasUserInteractiveValue	= true,
+							_hasActiveFocus				= false;
 	JASPListControl		*	_parentListView				= nullptr;
 	QQuickItem			*	_childControlsArea			= nullptr,
 						*	_innerControl				= nullptr,
@@ -291,10 +302,13 @@ protected:
 	QQuickItem			*	_mouseAreaObj				= nullptr;
 	int						_cursorShape				= Qt::PointingHandCursor;
 	int						_alignment					= Qt::AlignTop | Qt::AlignLeft;
+	Qt::FocusReason			_focusReason				= Qt::FocusReason::NoFocusReason;
+	bool					_dependsOnDynamicComponents = false;
 
 	static QMap<QQmlEngine*, QQmlComponent*>		_mouseAreaComponentMap;
 	static QByteArray								_mouseAreaDef;
 	static QQmlComponent*							getMouseAreaComponent(QQmlEngine* engine);
+	static const QStringList						_optionReservedNames;
 };
 
 

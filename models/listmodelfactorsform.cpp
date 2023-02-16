@@ -22,13 +22,15 @@
 #include "log.h"
 #include "controls/jaspcontrol.h"
 #include "analysisform.h"
-
+#include "controls/factorsformbase.h"
 
 using namespace std;
 
 ListModelFactorsForm::ListModelFactorsForm(JASPListControl* listView)
 	: ListModel(listView)
 {
+	_factorsForm = qobject_cast<FactorsFormBase*>(listView);
+	_needsSource = false;
 }
 
 QHash<int, QByteArray> ListModelFactorsForm::roleNames() const
@@ -63,6 +65,9 @@ void ListModelFactorsForm::initFactors(const FactorVec &factors)
 	beginResetModel();
 	
 	_factors.clear();
+	ListModelAvailableInterface* availableModel = qobject_cast<ListModelAvailableInterface*>(_factorsForm->availableVariablesList()->model());
+	if (availableModel) availableModel->clearAssignedModels();
+
 	Terms newTerms;
 
 	int index = 0;
@@ -85,7 +90,7 @@ int ListModelFactorsForm::countVariables() const
 {
 	int count = 0;
 	for (Factor* factor : _factors)
-		count += factor->listView->count();
+		count += factor->listView ? factor->listView->count() : factor->initTerms.size();
 
 	return count;
 }
@@ -111,11 +116,7 @@ ListModelFactorsForm::FactorVec ListModelFactorsForm::getFactors()
 	for (Factor* factor : _factors)
 	{
 		JASPListControl* listView = factor->listView;
-		if (listView)
-		{
-			Terms terms = listView->model()->terms();
-			result.push_back(make_tuple(fq(factor->name), fq(factor->title), terms.asVector()));
-		}
+		result.push_back(make_tuple(fq(factor->name), fq(factor->title), listView ? listView->model()->terms().asVector() : factor->initTerms));
 	}
 	
 	return result;
@@ -177,8 +178,7 @@ void ListModelFactorsForm::resetModelTerms()
 	for (Factor* factor : _factors)
 	{
 		JASPListControl* listView = factor->listView;
-		if (listView)
-			allTerms.add(listView->model()->terms());
+		allTerms.add(listView ? listView->model()->terms() : Terms(factor->initTerms));
 	}
 
 	_setTerms(allTerms);

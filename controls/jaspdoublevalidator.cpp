@@ -19,7 +19,6 @@
 #include "jaspdoublevalidator.h"
 #include <math.h>
 
-
 QValidator::State JASPDoubleValidator::validate(QString& s, int& pos) const
 {
 	if (s.isEmpty() || (s.startsWith("-") && s.length() == 1 && bottom() < 0))
@@ -57,8 +56,8 @@ QValidator::State JASPDoubleValidator::validate(QString& s, int& pos) const
 			return QValidator::Invalid;
 	}
 
-	bool isMaxExclusive = _inclusive == JASPControl::Inclusive::None || _inclusive == JASPControl::Inclusive::MinOnly;
-	bool isMinExclusive = _inclusive == JASPControl::Inclusive::None || _inclusive == JASPControl::Inclusive::MaxOnly;
+	bool isMaxExclusive = _inclusive == JASP::Inclusive::None || _inclusive == JASP::Inclusive::MinOnly;
+	bool isMinExclusive = _inclusive == JASP::Inclusive::None || _inclusive == JASP::Inclusive::MaxOnly;
 
 	if (value >= 0)
 	{
@@ -85,7 +84,7 @@ QString	JASPDoubleValidator::validationMessage(const QString& fieldName)
 	if (!_isInf(bottom()))
 	{
 		hasValidation = true;
-		if (_inclusive == JASPControl::Inclusive::MinMax || _inclusive == JASPControl::Inclusive::MinOnly)
+		if (_inclusive == JASP::Inclusive::MinMax || _inclusive == JASP::Inclusive::MinOnly)
 			message += tr("&#8805; %1").arg(bottom());
 		else
 			message += tr("&gt; %1").arg(bottom());
@@ -96,7 +95,7 @@ QString	JASPDoubleValidator::validationMessage(const QString& fieldName)
 		if (hasValidation)
 			message += tr(" and ");
 		hasValidation = true;
-		if (_inclusive == JASPControl::Inclusive::MinMax || _inclusive == JASPControl::Inclusive::MaxOnly)
+		if (_inclusive == JASP::Inclusive::MinMax || _inclusive == JASP::Inclusive::MaxOnly)
 			message += tr("&#8804; %1").arg(top());
 		else
 			message += tr("&lt; %1").arg(top());

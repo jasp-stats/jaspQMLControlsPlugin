@@ -1,4 +1,5 @@
-import QtQuick 2.0
+import QtQuick
+import JASP.Controls
 
 RectangularButton 
 {

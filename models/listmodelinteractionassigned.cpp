@@ -199,7 +199,7 @@ Terms ListModelInteractionAssigned::addTerms(const Terms& terms, int , const Row
 	dropped.setSortParent(availableModel()->allTerms());
 	dropped.set(terms);
 
-	Terms newTerms = dropped.combineTerms(JASPControl::CombinationType::CombinationCross);
+	Terms newTerms = dropped.combineTerms(JASP::CombinationType::CombinationCross);
 
 	_addTerms(newTerms, false);
 	setTerms();
@@ -209,8 +209,8 @@ Terms ListModelInteractionAssigned::addTerms(const Terms& terms, int , const Row
 
 void ListModelInteractionAssigned::moveTerms(const QList<int> &indexes, int dropItemIndex)
 {
-	JASPControl::DropMode _dropMode = dropMode();
-	if (indexes.length() == 0 || _dropMode == JASPControl::DropMode::DropNone)
+	JASP::DropMode _dropMode = dropMode();
+	if (indexes.length() == 0 || _dropMode == JASP::DropMode::DropNone)
 		return;
 
 	beginResetModel();

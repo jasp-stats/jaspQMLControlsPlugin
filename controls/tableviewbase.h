@@ -23,9 +23,12 @@
 #include "boundcontrols/boundcontroltableview.h"
 #include "models/listmodeltableviewbase.h"
 
+using namespace JASP;
+
 class TableViewBase : public JASPListControl, public BoundControl
 {
 	Q_OBJECT
+	QML_ELEMENT
 
 	Q_PROPERTY( ModelType		modelType			READ modelType				WRITE setModelType				NOTIFY modelTypeChanged					)
 	Q_PROPERTY( ItemType		itemType			READ itemType				WRITE setItemType				NOTIFY itemTypeChanged					)
@@ -69,8 +72,8 @@ public:
 
 	ItemType itemTypePerItem(int col = -1, int row = -1) const;
 
-	JASPControl::ModelType		modelType()									const				{ return _modelType;									}
-	JASPControl::ItemType		itemType()									const				{ return _itemType;										}
+	ModelType					modelType()									const				{ return _modelType;									}
+	ItemType					itemType()									const				{ return _itemType;										}
 	QVariant					defaultValue(int colIndex = -1, int rowIndex = -1);
 	QVariantList				itemTypePerRow()							const				{ QVariantList l; for (auto t : _itemTypePerRow) l.append(int(t)); return l;	}
 	QVariantList				itemTypePerColumn()							const				{ QVariantList l; for (auto t : _itemTypePerColumn) l.append(int(t)); return l;	}

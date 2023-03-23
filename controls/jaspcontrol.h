@@ -12,6 +12,27 @@ class JASPListControl;
 class BoundControl;
 class ComputedColumn;
 
+namespace JASP
+{
+	Q_NAMESPACE
+	// Be careful not to reuse a name in a enum type: in QML, they are mixed up with a 'JASP' prefix: JASP.DropNone or JASP.None
+	enum class Inclusive		{ None				= 0,															MinMax, MinOnly, MaxOnly };
+
+	enum class DropMode			{ DropNone			= static_cast<int>(Inclusive::MaxOnly)					+ 1,	DropInsert, DropReplace };
+	enum class ListViewType		{ AssignedVariables = static_cast<int>(DropMode::DropReplace)				+ 1,	Interaction, AvailableVariables, RepeatedMeasures, Layers, AvailableInteraction };
+	enum class CombinationType	{ NoCombination		= static_cast<int>(ListViewType::AvailableInteraction)	+ 1,	CombinationCross, CombinationInteraction, Combination2Way, Combination3Way, Combination4Way, Combination5Way };
+	enum class TextType			{ TextTypeDefault	= static_cast<int>(CombinationType::Combination5Way)	+ 1,	TextTypeModel, TextTypeRcode, TextTypeJAGSmodel, TextTypeSource, TextTypeLavaan, TextTypeCSem };
+	enum class ModelType		{ Simple			= static_cast<int>(TextType::TextTypeLavaan)			+ 1,	GridInput, CustomContrasts, MultinomialChi2Model, JAGSDataInputModel, FilteredDataEntryModel };
+	enum class ItemType			{ String			= static_cast<int>(ModelType::FilteredDataEntryModel)	+ 1,	Integer, Double	};
+
+	Q_ENUM_NS(Inclusive)
+	Q_ENUM_NS(DropMode)
+	Q_ENUM_NS(ListViewType)
+	Q_ENUM_NS(CombinationType)
+	Q_ENUM_NS(TextType)
+	Q_ENUM_NS(ModelType)
+	Q_ENUM_NS(ItemType)
+}
 ///
 /// Basic class for all our qml controls
 /// Contains all the properties that *must* be there for the QML components defined under Desktop/components/Controls and their bases in Desktop/widgets to function
@@ -19,6 +40,7 @@ class ComputedColumn;
 class JASPControl : public QQuickItem
 {
 	Q_OBJECT
+	QML_ELEMENT
 
 	Q_PROPERTY( ControlType							controlType				READ controlType			WRITE setControlType			NOTIFY controlTypeChanged			)
 	Q_PROPERTY( QString								name					READ name					WRITE setName					NOTIFY nameChanged					)
@@ -87,23 +109,12 @@ public:
 		, VariablesForm
 	};
 
-	// Be careful not to reuse a name in a enum type: in QML, they are mixed up with a 'JASP' prefix: JASP.DropNone or JASP.None
-	enum class Inclusive		{ None				= 0,															MinMax, MinOnly, MaxOnly };
-	enum class DropMode			{ DropNone			= static_cast<int>(Inclusive::MaxOnly)					+ 1,	DropInsert, DropReplace };
-	enum class ListViewType		{ AssignedVariables = static_cast<int>(DropMode::DropReplace)				+ 1,	Interaction, AvailableVariables, RepeatedMeasures, Layers, AvailableInteraction };
-	enum class CombinationType	{ NoCombination		= static_cast<int>(ListViewType::AvailableInteraction)	+ 1,	CombinationCross, CombinationInteraction, Combination2Way, Combination3Way, Combination4Way, Combination5Way };
-	enum class TextType			{ TextTypeDefault	= static_cast<int>(CombinationType::Combination5Way)	+ 1,	TextTypeModel, TextTypeRcode, TextTypeJAGSmodel, TextTypeSource, TextTypeLavaan, TextTypeCSem };
-	enum class ModelType		{ Simple			= static_cast<int>(TextType::TextTypeLavaan)			+ 1,	GridInput, CustomContrasts, MultinomialChi2Model, JAGSDataInputModel, FilteredDataEntryModel };
-	enum class ItemType			{ String			= static_cast<int>(ModelType::FilteredDataEntryModel)	+ 1,	Integer, Double	};
+	enum class MyType {
+		A,B
+	};
+	Q_ENUM(MyType)
 
 	Q_ENUM(ControlType)
-	Q_ENUM(Inclusive)
-	Q_ENUM(DropMode)
-	Q_ENUM(ListViewType)
-	Q_ENUM(CombinationType)
-	Q_ENUM(TextType)
-	Q_ENUM(ModelType)
-	Q_ENUM(ItemType)
 
 	JASPControl(QQuickItem *parent = nullptr);
 	~JASPControl(); //Disconnecting signals right before destroying the object avoids some crashes with qt >= 6.3 on macos m1

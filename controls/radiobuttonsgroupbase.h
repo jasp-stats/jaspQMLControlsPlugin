@@ -28,6 +28,7 @@ class RadioButtonBase;
 class RadioButtonsGroupBase : public JASPControl, public BoundControlBase
 {
 	Q_OBJECT
+	QML_ELEMENT
 	
 	Q_PROPERTY( QString					value			READ value				NOTIFY valueChanged		)
 	Q_PROPERTY( RadioButtonBase*		checkedButton	READ checkedButton		NOTIFY valueChanged		)

@@ -17,10 +17,10 @@
 //
 
 
-import QtQuick			2.11
-import QtQuick.Controls 2.5 as QtControls
-import QtQuick.Layouts	1.3
-import JASP				1.0
+import QtQuick
+import QtQuick.Controls as QtControls
+import QtQuick.Layouts
+import JASP.Controls
 
 ComponentsListBase
 {

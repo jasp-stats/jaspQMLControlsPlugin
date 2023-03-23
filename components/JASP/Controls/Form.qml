@@ -16,9 +16,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 import QtQuick			2.11
-import QtQuick.Controls 2.4
-import JASP.Controls	1.0
-import JASP				1.0
+//import QtQuick.Controls 2.4
+import JASP.Controls
 
 AnalysisForm
 {
@@ -47,9 +46,9 @@ AnalysisForm
 
 	Keys.onPressed: (event) => { event.accepted = true; } //dont let leftover input propagate upwards
 
-	ALTNavigation.enabled:			visible
-	ALTNavigation.scopeOnly:		true
-	ALTNavigation.parent:			null //default root
+	//ALTNavigation.enabled:			visible
+	//ALTNavigation.scopeOnly:		true
+	//ALTNavigation.parent:			null //default root
 					
 	MouseArea
 	{
@@ -190,9 +189,9 @@ AnalysisForm
 				visible:            DEBUG_MODE || form.developerMode
 				height:				visible ? implicitHeight : 0
 				label:				qsTr("Generate Wrapper")
-				onClicked:			popup.open()
+				//onClicked:			popup.open()
 
-				Popup
+				/*Popup
 				{
 					id: popup
 
@@ -213,7 +212,7 @@ AnalysisForm
 						control.selectByKeyboard:	true
 						onVisibleChanged:			if (visible) 	text = form.generateWrapper()
 					}
-				}
+				} */
 			}
 
 			CheckBox

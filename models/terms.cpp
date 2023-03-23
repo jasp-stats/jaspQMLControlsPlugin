@@ -390,7 +390,7 @@ Terms Terms::ffCombinations(const Terms &terms)
 	return newTerms;
 }
 
-Terms Terms::combineTerms(JASPControl::CombinationType type)
+Terms Terms::combineTerms(JASP::CombinationType type)
 {
 	Terms combinedTerms;
 
@@ -398,25 +398,25 @@ Terms Terms::combineTerms(JASPControl::CombinationType type)
 
 	switch (type)
 	{
-	case JASPControl::CombinationType::CombinationCross:
+	case JASP::CombinationType::CombinationCross:
 		combinedTerms = crossCombinations();
 		break;
-	case JASPControl::CombinationType::CombinationInteraction:
+	case JASP::CombinationType::CombinationInteraction:
 		combinedTerms = wayCombinations(nbTerms);
 		break;
-	case JASPControl::CombinationType::Combination2Way:
+	case JASP::CombinationType::Combination2Way:
 		combinedTerms = nbTerms < 2 ? Terms() : wayCombinations(2);
 		break;
-	case JASPControl::CombinationType::Combination3Way:
+	case JASP::CombinationType::Combination3Way:
 		combinedTerms = nbTerms < 3 ? Terms() : wayCombinations(3);
 		break;
-	case JASPControl::CombinationType::Combination4Way:
+	case JASP::CombinationType::Combination4Way:
 		combinedTerms = nbTerms < 4 ? Terms() : wayCombinations(4);
 		break;
-	case JASPControl::CombinationType::Combination5Way:
+	case JASP::CombinationType::Combination5Way:
 		combinedTerms = nbTerms < 5 ? Terms() : wayCombinations(5);
 		break;
-	case JASPControl::CombinationType::NoCombination:
+	case JASP::CombinationType::NoCombination:
 	default:
 		combinedTerms = *this;
 		break;

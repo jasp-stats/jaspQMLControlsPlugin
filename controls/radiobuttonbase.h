@@ -26,6 +26,7 @@ class RadioButtonsGroupBase;
 class RadioButtonBase : public JASPControl
 {
 	Q_OBJECT
+	QML_ELEMENT
 
 public:
 	RadioButtonBase(QQuickItem* parent = nullptr);

@@ -289,9 +289,9 @@ bool TextInputBase::_formulaResultInBounds(double result)
 {
 	double min			= property("min").toDouble();
 	double max			= property("max").toDouble();
-	JASPControl::Inclusive inclusive = JASPControl::Inclusive(property("inclusive").toInt());
-	bool includeMin = (inclusive == JASPControl::Inclusive::MinMax || inclusive == JASPControl::Inclusive::MinOnly);
-	bool includeMax = (inclusive == JASPControl::Inclusive::MinMax || inclusive == JASPControl::Inclusive::MaxOnly);
+	JASP::Inclusive inclusive = JASP::Inclusive(property("inclusive").toInt());
+	bool includeMin = (inclusive == JASP::Inclusive::MinMax || inclusive == JASP::Inclusive::MinOnly);
+	bool includeMax = (inclusive == JASP::Inclusive::MinMax || inclusive == JASP::Inclusive::MaxOnly);
 
 	bool tooSmall = includeMin ? result < min : result <= min;
 	bool tooLarge = includeMax ? result > max : result >= max;

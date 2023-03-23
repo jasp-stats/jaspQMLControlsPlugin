@@ -67,7 +67,7 @@ public:
 	const QString&			controlName()				const	{ return _controlName;				}
 	const QStringList&		modelUse()					const	{ return _modelUse;					}
 	bool					combineWithOtherModels()	const	{ return _combineWithOtherModels;	}
-	bool					generateInteractions()		const	{ return _combineWithOtherModels || (_combineTerms != JASPControl::CombinationType::NoCombination); }
+	bool					generateInteractions()		const	{ return _combineWithOtherModels || (_combineTerms != JASP::CombinationType::NoCombination); }
 	bool					isColumnsModel()			const	{ return _isVariableInfoModel;			}
 	bool					isNativeModel()				const	{ return _nativeModel != nullptr;	}
 	QAbstractItemModel*		nativeModel()						{ return _nativeModel;				}
@@ -115,7 +115,7 @@ private:
 	QString							_conditionExpression;
 	QVector<ConditionVariable>		_conditionVariables;
 	bool							_connected					= false;
-	JASPControl::CombinationType	_combineTerms				= JASPControl::CombinationType::NoCombination;
+	JASP::CombinationType			_combineTerms				= JASP::CombinationType::NoCombination;
 	int								_onlyTermsWithXComponents	= 0;
 };
 

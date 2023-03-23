@@ -16,8 +16,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import QtQuick 2.11
-import QtQuick.Layouts 1.3
+import QtQuick
+import QtQuick.Layouts
+import JASP.Controls
 
 
 GridLayout

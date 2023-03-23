@@ -17,10 +17,10 @@
 //
 
 
-import QtQuick			2.11
-import QtQuick.Controls 2.4 as QTCONTROLS
-import QtQml.Models		2.2
-import JASP				1.0
+import QtQuick
+import QtQuick.Controls as QTCONTROLS
+import QtQml.Models
+import JASP.Controls
 
 VariablesListBase
 {

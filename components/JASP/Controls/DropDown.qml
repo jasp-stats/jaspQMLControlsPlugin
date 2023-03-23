@@ -1,7 +1,7 @@
-import QtQuick			2.11
-import QtQuick.Controls 2.4
-import QtQuick.Layouts	1.3
-import JASP				1.0
+import QtQuick
+import QtQuick.Controls as QtC
+import QtQuick.Layouts
+import JASP.Controls
 
 
 ComboBoxBase
@@ -82,7 +82,7 @@ ComboBoxBase
 		}
 	}
 
-	ComboBox
+	QtC.ComboBox
 	{
 						id:				control
 						model:			comboBox.model
@@ -175,7 +175,7 @@ ComboBoxBase
 			radius:				jaspTheme.jaspControlHighlightWidth
 		}
 
-		popup: Popup
+		popup: QtC.Popup
 		{
 			y:				control.height - 1
 			width:			comboBoxBackground.width
@@ -221,7 +221,7 @@ ComboBoxBase
 			}
 		}
 
-		delegate: ItemDelegate
+		delegate: QtC.ItemDelegate
 		{
 			height:								jaspTheme.comboBoxHeight
 			width:								comboBoxBackground.width

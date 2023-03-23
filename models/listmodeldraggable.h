@@ -33,9 +33,9 @@ public:
 	~ListModelDraggable();
 
 	bool copyTermsWhenDropped() const						{ return _copyTermsWhenDropped; }
-	JASPControl::DropMode dropMode() const					{ return _dropMode; }
+	JASP::DropMode dropMode() const							{ return _dropMode; }
 	
-	void setDropMode(JASPControl::DropMode dropMode)		{ _dropMode = dropMode; }
+	void setDropMode(JASP::DropMode dropMode)				{ _dropMode = dropMode; }
 	void setCopyTermsWhenDropped(bool copy)					{ _copyTermsWhenDropped = copy; }
 	
 	virtual Terms termsFromIndexes(const QList<int> &indexes)					const;
@@ -51,7 +51,7 @@ protected:
 	bool						_copyTermsWhenDropped;
 	bool						_addNewAvailableTermsToAssignedModel	= false;
 	bool						_allowAnalysisOwnComputedColumns		= true;
-	JASPControl::DropMode		_dropMode								= JASPControl::DropMode::DropNone;
+	JASP::DropMode				_dropMode								= JASP::DropMode::DropNone;
 		
 	bool						isAllowed(const Term &term) const;
 };

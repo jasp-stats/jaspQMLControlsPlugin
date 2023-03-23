@@ -265,10 +265,10 @@ QString ListModelCustomContrasts::getItemInputType(const QModelIndex &index) con
 {
 	if (index.column() >= _tableTerms.variables.length())
 	{
-		if (_tableView->itemType() == JASPControl::ItemType::Double)	return "double";
-		else															return "formula";
+		if (_tableView->itemType() == JASP::ItemType::Double)	return "double";
+		else													return "formula";
 	}
-	else																return "string";
+	else														return "string";
 }
 
 int ListModelCustomContrasts::getMaximumColumnWidthInCharacters(size_t) const

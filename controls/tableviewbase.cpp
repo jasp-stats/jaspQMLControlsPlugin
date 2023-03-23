@@ -174,7 +174,7 @@ void TableViewBase::rScriptDoneHandler(const QString & result)
 		_tableModel->rScriptDoneHandler(result);
 }
 
-JASPControl::ItemType TableViewBase::itemTypePerItem(int col, int row) const
+JASP::ItemType TableViewBase::itemTypePerItem(int col, int row) const
 {
 	if (col >= 0 && _itemTypePerColumn.length() > col)	return _itemTypePerColumn[col];
 	if (row >= 0 && _itemTypePerRow.length() > row)		return _itemTypePerRow[row];
@@ -207,19 +207,19 @@ QVariant TableViewBase::defaultValue(int colIndex, int rowIndex)
 	// Force the QVariant to have the right type
 	switch (itemTypePerItem(colIndex, rowIndex))
 	{
-	case JASPControl::ItemType::Integer:
+	case JASP::ItemType::Integer:
 	{
 		if (defValue.typeId() == QMetaType::Int)		return defValue;
 		if (defValue.canConvert<int>())					return defValue.toInt();
 		break;
 	}
-	case JASPControl::ItemType::Double:
+	case JASP::ItemType::Double:
 	{
 		if (defValue.typeId() == QMetaType::Double)		return defValue;
 		if (defValue.canConvert<double>())				return defValue.toDouble();
 		break;
 	}
-	case JASPControl::ItemType::String:
+	case JASP::ItemType::String:
 	{
 		if (defValue.typeId() == QMetaType::QString)	return defValue;
 		if (defValue.canConvert<QString>())				return defValue.toString();
@@ -245,8 +245,8 @@ std::vector<std::string> TableViewBase::usedVariables() const
 
 void TableViewBase::setItemTypePerRow(QVariantList list)
 {
-	QList<JASPControl::ItemType> typeList;
-	for (const QVariant& t : list) typeList.append(JASPControl::ItemType(t.toInt()));
+	QList<JASP::ItemType> typeList;
+	for (const QVariant& t : list) typeList.append(JASP::ItemType(t.toInt()));
 
 	if (typeList != _itemTypePerRow)
 	{
@@ -257,8 +257,8 @@ void TableViewBase::setItemTypePerRow(QVariantList list)
 
 void TableViewBase::setItemTypePerColumn(QVariantList list)
 {
-	QList<JASPControl::ItemType> typeList;
-	for (const QVariant& t : list) typeList.append(JASPControl::ItemType(t.toInt()));
+	QList<JASP::ItemType> typeList;
+	for (const QVariant& t : list) typeList.append(JASP::ItemType(t.toInt()));
 
 	if (typeList != _itemTypePerColumn)
 	{

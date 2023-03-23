@@ -46,6 +46,8 @@ class RSyntax;
 class AnalysisForm : public QQuickItem
 {
 	Q_OBJECT
+	QML_ELEMENT
+
 	Q_PROPERTY(QString		title					READ title					WRITE setTitle					NOTIFY titleChanged					)
 	Q_PROPERTY(QString		errors					READ errors													NOTIFY errorsChanged				)
 	Q_PROPERTY(QString		warnings				READ warnings												NOTIFY warningsChanged				)
@@ -145,6 +147,7 @@ public:
 	Q_INVOKABLE void		runAnalysis();
 	Q_INVOKABLE bool		initialized()			const	{ return _initialized; }
 	Q_INVOKABLE QString		generateWrapper()		const;
+	Q_INVOKABLE QString		parseOptions(const QString& options);
 
 	void			addControlError(JASPControl* control, QString message, bool temporary = false, bool warning = false);
 	void			clearControlError(JASPControl* control);
@@ -178,7 +181,6 @@ public:
 	void			sortControls(QList<JASPControl*>& controls);
 	QString			getSyntaxName(const QString& name)				const;
 	void			setHasVolatileNotes(bool hasVolatileNotes);
-	bool			parseOptions(Json::Value& options);
 	void			setActiveJASPControl(JASPControl* control, bool hasActiveFocus);
 	JASPControl*	getActiveJASPControl()	{ return _activeJASPControl; }
 

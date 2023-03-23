@@ -44,9 +44,9 @@ Json::Value BoundControlTextArea::createJson() const
 void BoundControlTextArea::checkSyntax()
 {
 	QString text = _textArea->text();
-	JASPControl::TextType textType = _textArea->textType();
+	JASP::TextType textType = _textArea->textType();
 
-	if (textType == JASPControl::TextType::TextTypeRcode)
+	if (textType == JASP::TextType::TextTypeRcode)
 	{
 		setIsRCode();
 		try

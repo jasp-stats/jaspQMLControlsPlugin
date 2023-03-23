@@ -2,10 +2,13 @@
 #define PREFERENCESMODELBASE_H
 
 #include <QObject>
+#include <QtQml/qqml.h>
 
 class PreferencesModelBase : public QObject
 {
 	Q_OBJECT
+	Q_PROPERTY(bool showRSyntax READ showRSyntax WRITE setShowRSyntax NOTIFY showRSyntaxChanged)
+
 public:
 	explicit PreferencesModelBase(QObject *parent = nullptr);
 	~PreferencesModelBase() { _singleton = nullptr; }

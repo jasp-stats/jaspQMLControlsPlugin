@@ -493,7 +493,7 @@ Terms SourceItem::_readAllTerms()
 			terms = _listControl->model()->filterTerms(terms, _modelUse);
 	}
 
-	if (_combineTerms != JASPControl::CombinationType::NoCombination)
+	if (_combineTerms != JASP::CombinationType::NoCombination)
 		terms = terms.combineTerms(_combineTerms);
 
 	if (_onlyTermsWithXComponents > 0)

@@ -1,7 +1,6 @@
-import QtQuick			2.11
-import QtQuick.Controls 2.4
-import QtQuick.Layouts	1.3
-import JASP				1.0
+import QtQuick
+import QtQuick.Controls as QtC
+import JASP.Controls
 
 TextAreaBase
 {
@@ -61,7 +60,7 @@ TextAreaBase
 			boundsBehavior: Flickable.StopAtBounds
 			anchors.fill:	parent
 
-			TextArea.flickable: TextArea
+			QtC.TextArea.flickable: QtC.TextArea
 			{
 				id:					control
 				selectByMouse:		true
@@ -70,7 +69,7 @@ TextAreaBase
 
 				font:				textArea.textType === JASP.TextTypeDefault || textArea.textType === JASP.TextTypeSource ? jaspTheme.font : jaspTheme.fontCode
 				color:				textArea.enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled
-				wrapMode:			TextArea.Wrap
+				wrapMode:			QtC.TextArea.Wrap
 
 				Keys.onPressed: (event) =>
 				{
@@ -96,7 +95,7 @@ TextAreaBase
 				}
 			}
 
-			ScrollBar.vertical: ScrollBar { }
+			QtC.ScrollBar.vertical: QtC.ScrollBar { }
 		}
 	}
 

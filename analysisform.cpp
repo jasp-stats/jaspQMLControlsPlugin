@@ -250,16 +250,28 @@ void AnalysisForm::setHasVolatileNotes(bool hasVolatileNotes)
 	emit hasVolatileNotesChanged();
 }
 
-bool AnalysisForm::parseOptions(Json::Value &options)
-{
-	if (_rSyntax->parseRSyntaxOptions(options))
-	{
-		bindTo(options);
-		options = _analysis->boundValues();
-		return true;
-	}
 
-	return false;
+QString AnalysisForm::parseOptions(const QString &options)
+{
+	if(!_analysis)
+		setAnalysis(new AnalysisBase());
+
+	_setUpControls();
+
+	Json::Reader parser;
+	Json::Value jsonOptions(Json::objectValue);
+	if (!options.isEmpty())
+		parser.parse(fq(options), jsonOptions);
+	_rSyntax->parseRSyntaxOptions(jsonOptions);
+
+	QString error = getError();
+	if (error.isEmpty())
+	{
+		bindTo(jsonOptions);
+		return tq(_analysis->boundValues().toStyledString());
+	}
+	else
+		return "Cannot parse it: " + getError();
 }
 
 void AnalysisForm::_setUp()
@@ -465,7 +477,7 @@ void AnalysisForm::addControlError(JASPControl* control, QString message, bool t
 			// Cannot instantiate _controlErrorMessageComponent in the constructor (it crashes), and it might be too late in the formCompletedHandler since error can be generated earlier
 			// So create it when it is needed for the first time.
 			if (!_controlErrorMessageComponent)
-				_controlErrorMessageComponent = new QQmlComponent(qmlEngine(this), "qrc:///components/JASP/Controls/ControlErrorMessage.qml");
+				_controlErrorMessageComponent = new QQmlComponent(qmlEngine(this), "qrc:///JASP/Controls/components/JASP/Controls/ControlErrorMessage.qml");
 
 			controlErrorMessageItem = qobject_cast<QQuickItem*>(_controlErrorMessageComponent->create(QQmlEngine::contextForObject(this)));
 			if (!controlErrorMessageItem)

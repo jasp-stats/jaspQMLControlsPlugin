@@ -37,6 +37,8 @@
 #include <QQmlProperty>
 #include "log.h"
 
+using namespace JASP;
+
 VariablesListBase::VariablesListBase(QQuickItem* parent)
 	: JASPListControl(parent)
 {
@@ -79,7 +81,7 @@ void VariablesListBase::setUp()
 	connect(DesktopCommunicator::singleton(), &DesktopCommunicator::currentJaspThemeChanged, this, &VariablesListBase::_setAllowedVariables);
 
 	_draggableModel->setItemType(property("itemType").toString());
-	JASPControl::DropMode dropMode = JASPControl::DropMode(property("dropMode").toInt());
+	DropMode dropMode = DropMode(property("dropMode").toInt());
 	_draggableModel->setDropMode(dropMode);
 	
 	//We use macros here because the signals come from QML

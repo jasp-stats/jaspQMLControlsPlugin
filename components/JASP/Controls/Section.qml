@@ -16,9 +16,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import QtQuick			2.11
-import QtQuick.Layouts	1.3 as L
-import JASP				1.0
+import QtQuick
+import QtQuick.Layouts as L
+import JASP.Controls
 
 FocusScope
 {
@@ -30,9 +30,9 @@ FocusScope
 	L.Layout.columnSpan	: form ? form.columns : 1
 	objectName			: "Section"
 
-	ALTNavigation.enabled:			visible
-	ALTNavigation.showChildren:		true
-	ALTNavigation.onTagMatch:		{ expanded = true; expanderButton.forceActiveFocus(); }
+	//ALTNavigation.enabled:			visible
+	//ALTNavigation.showChildren:		true
+	//ALTNavigation.onTagMatch:		{ expanded = true; expanderButton.forceActiveFocus(); }
 
 	default		property alias	content					: expanderArea.children
 				property alias	button					: expanderButton

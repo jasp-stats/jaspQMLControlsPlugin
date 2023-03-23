@@ -26,6 +26,7 @@
 class FactorLevelListBase :  public JASPListControl, public BoundControlBase
 {
 	Q_OBJECT
+	QML_ELEMENT
 	
 	Q_PROPERTY( QString			factorName			READ factorName				WRITE setFactorName				NOTIFY factorNameChanged			)
 	Q_PROPERTY( QString			levelName			READ levelName				WRITE setLevelName				NOTIFY levelNameChanged				)

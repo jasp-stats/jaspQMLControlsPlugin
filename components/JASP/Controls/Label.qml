@@ -16,11 +16,11 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import QtQuick			2.11
-import QtQuick.Controls 2.4
+import QtQuick
+import QtQuick.Controls as QtC
 
 
-Label
+QtC.Label
 {
 	font:	jaspTheme.font
 	color:	enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled

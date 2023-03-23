@@ -68,8 +68,8 @@ void ListModelDraggable::removeTerms(const QList<int> &indices)
 
 void ListModelDraggable::moveTerms(const QList<int> &indexes, int dropItemIndex)
 {
-	JASPControl::DropMode _dropMode = dropMode();
-	if (indexes.length() == 0 || _dropMode == JASPControl::DropMode::DropNone)
+	JASP::DropMode _dropMode = dropMode();
+	if (indexes.length() == 0 || _dropMode == JASP::DropMode::DropNone)
 		return;	
 
 	beginResetModel();

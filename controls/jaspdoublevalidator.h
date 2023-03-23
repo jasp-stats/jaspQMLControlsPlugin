@@ -29,8 +29,9 @@
 class JASPDoubleValidator : public QDoubleValidator
 {
 	Q_OBJECT
+	QML_ELEMENT
 
-	Q_PROPERTY(JASPControl::Inclusive inclusive READ inclusive	WRITE setInclusive	NOTIFY inclusiveChanged	)
+	Q_PROPERTY(JASP::Inclusive inclusive READ inclusive	WRITE setInclusive	NOTIFY inclusiveChanged	)
 
 public:
 	JASPDoubleValidator (QObject* parent = nullptr) : QDoubleValidator(parent) {}
@@ -39,15 +40,15 @@ public:
 
 	Q_INVOKABLE QString	validationMessage(const QString& fieldName);
 
-	GENERIC_SET_FUNCTION(Inclusive, _inclusive, inclusiveChanged, JASPControl::Inclusive)
+	GENERIC_SET_FUNCTION(Inclusive, _inclusive, inclusiveChanged, JASP::Inclusive)
 
-	JASPControl::Inclusive inclusive() { return _inclusive; }
+	JASP::Inclusive inclusive() { return _inclusive; }
 
 signals:
 	void inclusiveChanged();
 
 protected:
-	JASPControl::Inclusive	_inclusive = JASPControl::Inclusive::MinMax;
+	JASP::Inclusive	_inclusive = JASP::Inclusive::MinMax;
 
 private:
 	bool	_isInf(double value);

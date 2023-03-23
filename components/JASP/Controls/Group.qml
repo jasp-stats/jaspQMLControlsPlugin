@@ -16,11 +16,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import QtQuick			2.11
-import QtQuick.Controls 2.4
-import QtQuick.Layouts	1.3 as L
-import JASP				1.0
-
+import QtQuick
+import QtQuick.Layouts	as L
+import JASP.Controls
 
 JASPControl
 {
@@ -33,8 +31,8 @@ JASPControl
 	childControlsArea		: contentArea
 	focusOnTab				: false
 
-	ALTNavigation.enabled:		true
-	ALTNavigation.onTagMatch:	{ contentArea.nextItemInFocusChain().forceActiveFocus(); }
+	//ALTNavigation.enabled:		true
+	//ALTNavigation.onTagMatch:	{ contentArea.nextItemInFocusChain().forceActiveFocus(); }
 
 	default property alias	content:			contentArea.children
 			property int	rowSpacing:			jaspTheme.rowGroupSpacing

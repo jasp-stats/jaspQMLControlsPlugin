@@ -1,6 +1,5 @@
-import JASP			1.0
-import JASP.Controls 1.0
-import QtQuick		2.11 as QT
+import JASP.Controls
+import QtQuick
 
 TextField
 {

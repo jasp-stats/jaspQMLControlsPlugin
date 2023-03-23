@@ -285,8 +285,8 @@ void ListModelTableViewBase::itemChanged(int column, int row, QVariant value, QS
 	{
 		if (_tableTerms.values[column][row] != value)
 		{
-			JASPControl::ItemType itemType = _tableView->itemTypePerItem(column, row);
-			_tableTerms.values[column][row] = itemType == JASPControl::ItemType::Integer ? value.toInt() : itemType == JASPControl::ItemType::Double ? value.toDouble() : value;
+			JASP::ItemType itemType = _tableView->itemTypePerItem(column, row);
+			_tableTerms.values[column][row] = itemType == JASP::ItemType::Integer ? value.toInt() : itemType == JASP::ItemType::Double ? value.toDouble() : value;
 
 		if (type != "formula") // For formula type, wait for the formulaCheckSucceeded signal before emitting modelChanged
 			emit termsChanged();
@@ -437,10 +437,10 @@ void ListModelTableViewBase::runRScript(const QString & script)
 bool ListModelTableViewBase::valueOk(QVariant value, int col, int row)
 {
 	bool	ok	= true;
-	JASPControl::ItemType itemType = _tableView->itemTypePerItem(col, row);
+	JASP::ItemType itemType = _tableView->itemTypePerItem(col, row);
 
-	if		(itemType == JASPControl::ItemType::Double)		value.toDouble(&ok);
-	else if	(itemType == JASPControl::ItemType::Integer)	value.toInt(&ok);
+	if		(itemType == JASP::ItemType::Double)	value.toDouble(&ok);
+	else if	(itemType == JASP::ItemType::Integer)	value.toInt(&ok);
 
 	return ok;
 }
@@ -500,9 +500,9 @@ QString ListModelTableViewBase::getDefaultColName(size_t index) const
 
 QString ListModelTableViewBase::getItemInputType(const QModelIndex &index) const
 {
-	JASPControl::ItemType itemType = _tableView->itemTypePerItem(index.column(), index.row());
+	JASP::ItemType itemType = _tableView->itemTypePerItem(index.column(), index.row());
 
-	if (itemType == JASPControl::ItemType::Double)			return "double";
-	else if (itemType == JASPControl::ItemType::Integer)	return "integer";
-	else													return "string";
+	if (itemType == JASP::ItemType::Double)			return "double";
+	else if (itemType == JASP::ItemType::Integer)	return "integer";
+	else											return "string";
 }

@@ -17,9 +17,9 @@
 //
 
 import QtQuick
-import QtQuick.Controls 2.4
-import QtQuick.Layouts	1.3
-import JASP				1.0
+import QtQuick.Controls as QtC
+import QtQuick.Layouts
+import JASP.Controls
 
 TextInputBase
 {
@@ -131,7 +131,7 @@ TextInputBase
 		}
 	}
 
-	TextField
+	QtC.TextField
 	{
 		id:						control
 		anchors.left:			beforeLabelRect.visible ? beforeLabelRect.right : parent.left
@@ -150,10 +150,10 @@ TextInputBase
 		enabled:				textField.editable
 		// text property is set by TextInpoutBase
 
-		ToolTip.text		: control.text
-		ToolTip.timeout		: jaspTheme.toolTipTimeout
-		ToolTip.delay		: !hovered ? 0 : jaspTheme.toolTipDelay
-		ToolTip.visible		: contentWidth > width - leftPadding - rightPadding && (hovered || control.activeFocus)
+		QtC.ToolTip.text		: control.text
+		QtC.ToolTip.timeout		: jaspTheme.toolTipTimeout
+		QtC.ToolTip.delay		: !hovered ? 0 : jaspTheme.toolTipDelay
+		QtC.ToolTip.visible		: contentWidth > width - leftPadding - rightPadding && (hovered || control.activeFocus)
 
 		// The acceptableInput is checked even if the user is still typing in the TextField.
 		// In this case, the error should not appear immediately (only when the user is pressing the return key, or going out of focus),

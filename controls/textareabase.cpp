@@ -31,6 +31,8 @@
 
 #include "log.h"
 
+using namespace JASP;
+
 TextAreaBase::TextAreaBase(QQuickItem* parent)
 	: JASPListControl(parent)
 {

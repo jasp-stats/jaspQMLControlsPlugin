@@ -29,6 +29,7 @@ class CheckBoxBase;
 class VariablesListBase : public JASPListControl, public BoundControl
 {
 	Q_OBJECT
+	QML_ELEMENT
 
 	Q_PROPERTY( ListViewType	listViewType					READ listViewType					WRITE setListViewType					NOTIFY listViewTypeChanged					)
 	Q_PROPERTY( int				columns							READ columns						WRITE setColumns						NOTIFY columnsChanged						)
@@ -58,7 +59,7 @@ public:
 	const Json::Value&			defaultBoundValue()							const	override	{ return _boundControl->defaultBoundValue();		}
 	void						setDefaultBoundValue(const Json::Value& defaultValue) override	{ _boundControl->setDefaultBoundValue(defaultValue); }
 
-	ListViewType				listViewType()								const				{ return _listViewType;								}
+	JASP::ListViewType			listViewType()								const				{ return _listViewType;								}
 	BoundControl*				boundControl()										override	{ return _boundControl;								}
 	int							columns()									const				{ return _columns;									}
 	const QStringList&			allowedColumns()							const				{ return _allowedColumns;							}
@@ -83,7 +84,7 @@ signals:
 	void interactionHighOrderCheckBoxChanged();
 
 protected:
-	GENERIC_SET_FUNCTION(ListViewType,					_listViewType,					listViewTypeChanged,					ListViewType	)
+	GENERIC_SET_FUNCTION(ListViewType,					_listViewType,					listViewTypeChanged,					JASP::ListViewType	)
 	GENERIC_SET_FUNCTION(Columns,						_columns,						columnsChanged,							int				)
 	GENERIC_SET_FUNCTION(AllowedColumns,				_allowedColumns,				allowedColumnsChanged,					QStringList		)
 	GENERIC_SET_FUNCTION(SuggestedColumns,				_suggestedColumns,				suggestedColumnsChanged,				QStringList		)
@@ -97,7 +98,7 @@ protected:
 	ListModel*					getRelatedModel();
 
 	ListModelDraggable*			_draggableModel	= nullptr;
-	ListViewType				_listViewType	= ListViewType::AssignedVariables;
+	JASP::ListViewType			_listViewType	= JASP::ListViewType::AssignedVariables;
 	BoundControl*				_boundControl	= nullptr;
 
 protected slots:

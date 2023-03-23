@@ -7,6 +7,7 @@
 class SliderBase : public JASPControl, public BoundControlBase
 {
 	Q_OBJECT
+	QML_ELEMENT
 	
 public:
 	SliderBase(QQuickItem* parent = nullptr);

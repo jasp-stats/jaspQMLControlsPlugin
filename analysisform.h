@@ -147,7 +147,7 @@ public:
 	Q_INVOKABLE void		runAnalysis();
 	Q_INVOKABLE bool		initialized()			const	{ return _initialized; }
 	Q_INVOKABLE QString		generateWrapper()		const;
-	Q_INVOKABLE QString		parseOptions(const QString& options);
+	Q_INVOKABLE QString		parseOptions(const QString& options, const QString& data);
 
 	void			addControlError(JASPControl* control, QString message, bool temporary = false, bool warning = false);
 	void			clearControlError(JASPControl* control);

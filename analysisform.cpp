@@ -33,6 +33,7 @@
 #include <QTimer>
 #include "controls/variableslistbase.h"
 #include "preferencesmodelbase.h"
+#include "simpleDataSetModel.h"
 
 using namespace std;
 
@@ -251,17 +252,20 @@ void AnalysisForm::setHasVolatileNotes(bool hasVolatileNotes)
 }
 
 
-QString AnalysisForm::parseOptions(const QString &options)
+QString AnalysisForm::parseOptions(const QString &options, const QString& data)
 {
+	Json::Reader parser;
+	Json::Value jsonOptions(Json::objectValue), jsonData(Json::arrayValue);
+	if (!options.isEmpty()) parser.parse(fq(options), jsonOptions);
+	if (!data.isEmpty()) parser.parse(fq(data), jsonData);
+
+	SimpleDataSetModel::singleton()->setData(jsonData);
+
 	if(!_analysis)
 		setAnalysis(new AnalysisBase());
+	else
+		_setUpControls();
 
-	_setUpControls();
-
-	Json::Reader parser;
-	Json::Value jsonOptions(Json::objectValue);
-	if (!options.isEmpty())
-		parser.parse(fq(options), jsonOptions);
 	_rSyntax->parseRSyntaxOptions(jsonOptions);
 
 	QString error = getError();

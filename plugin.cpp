@@ -10,6 +10,7 @@
 #include "jaspcontrol.h"
 #include "ALTNavigation/altnavigation.h"
 #include "knownissues.h"
+#include "simpleDataSetModel.h"
 #include <qdebug.h>
 
 //![plugin]
@@ -58,6 +59,7 @@ class JASPQMLComponents : public QQmlEngineExtensionPlugin
 		ALTNavigation::registerQMLTypes("JASP.Controls");
 
 		new KnownIssues();
+		new SimpleDataSetModel();
 	}
 };
 //![plugin]

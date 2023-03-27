@@ -40,7 +40,6 @@ public:
 									bool ignoreReadyForUse = false)			const;
 
 	virtual Q_INVOKABLE	QString	helpFile()									const	{ return ""; }
-	virtual Q_INVOKABLE void	createForm(QQuickItem* parentItem=nullptr);
 	virtual				void	destroyForm();
 
 	const Json::Value&	boundValues()										const	{ return _boundValues;		}

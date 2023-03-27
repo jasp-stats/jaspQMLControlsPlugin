@@ -72,6 +72,7 @@ list(APPEND HEADER_FILES
     preferencesmodelbase.h
     sortable.h
     variableinfo.h
+    simpleDataSetModel.h
 )
 
 file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/*.cpp")

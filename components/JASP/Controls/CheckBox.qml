@@ -16,9 +16,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import QtQuick 2.11
-import QtQuick.Controls 2.4 as QtC
-import QtQuick.Layouts	1.3 as L
+import QtQuick
+import QtQuick.Controls as QtC
+import QtQuick.Layouts	as L
 import JASP.Controls
 
 

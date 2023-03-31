@@ -18,10 +18,7 @@
 
 
 import QtQuick
-import QtQuick.Controls	as QTC
-import QtQuick.Layouts
 import JASP.Controls
-import QtQuick.Window
 
 TableViewBase
 {

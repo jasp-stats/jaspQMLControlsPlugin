@@ -16,9 +16,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import QtQuick			2.0
-import QtQuick.Controls 2.4 as QtControls
-import QtQuick.Layouts	1.3
+import QtQuick
+import JASP.Controls
+import QtQuick.Layouts
 
 ComponentsListBase
 {
@@ -165,11 +165,6 @@ ComponentsListBase
 				height					: jaspTheme.iconSize
 				width					: jaspTheme.iconSize
 				z						: 2
-
-				QtControls.ToolTip.text			: removeTooltip
-				QtControls.ToolTip.timeout		: jaspTheme.toolTipTimeout
-				QtControls.ToolTip.delay		: jaspTheme.toolTipDelay
-				QtControls.ToolTip.visible		: removeTooltip !== "" && deleteMouseArea.containsMouse
 
 				MouseArea
 				{

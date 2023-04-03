@@ -272,10 +272,12 @@ QString AnalysisForm::parseOptions(const QString &options, const QString& data)
 	if (error.isEmpty())
 	{
 		bindTo(jsonOptions);
-		return tq(_analysis->boundValues().toStyledString());
+		error = getError();
 	}
+	if (error.isEmpty())
+		return tq(_analysis->boundValues().toStyledString());
 	else
-		return "Cannot parse it: " + getError();
+		return "{ \"error\": \"" + getError() + "\"}";
 }
 
 void AnalysisForm::_setUp()
@@ -506,7 +508,7 @@ void AnalysisForm::addControlError(JASPControl* control, QString message, bool t
 		controlErrorMessageItem->setProperty("control", QVariant::fromValue(control));
 		controlErrorMessageItem->setProperty("warning", warning);
 		controlErrorMessageItem->setParentItem(container);
-		QMetaObject::invokeMethod(controlErrorMessageItem, "showMessage", Qt::QueuedConnection, Q_ARG(QVariant, message), Q_ARG(QVariant, temporary));
+		QMetaObject::invokeMethod(controlErrorMessageItem, "showMessage", Qt::DirectConnection, Q_ARG(QVariant, message), Q_ARG(QVariant, temporary));
 	}
 
 	if (warning)	control->setHasWarning(true);
@@ -515,6 +517,9 @@ void AnalysisForm::addControlError(JASPControl* control, QString message, bool t
 
 bool AnalysisForm::hasError()
 {
+	if (_formErrors.count() > 0)
+		return true;
+
 	// _controls have only controls created when the form is created, not the ones created dynamically afterwards
 	// So here we use a workaround: check whether one errorMessage item in _controlErrorMessageCache has a control (do not use visible since it becomes visible too late).
 	// Controls handling inside a form must indeed be done in anther way!
@@ -528,7 +533,7 @@ bool AnalysisForm::hasError()
 
 QString AnalysisForm::getError()
 {
-	QString message;
+	QString message = _formErrors.join(", ");
 
 	for (QQuickItem* item : _controlErrorMessageCache)
 		if (item->property("control").value<JASPControl*>() != nullptr)

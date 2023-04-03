@@ -23,6 +23,8 @@ class JASPQMLComponents : public QQmlEngineExtensionPlugin
 	{
 		QQmlEngineExtensionPlugin::initializeEngine(engine, uri);
 
+		QLocale::setDefault(QLocale(QLocale::English)); // make decimal points == .
+
 		bool	debug	= false,
 				isMac	= false,
 				isLinux = false;

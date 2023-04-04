@@ -83,6 +83,7 @@ public:
 	void					blockValueChangeSignal(bool block, bool notifyOnceUnblocked = true);
 	QString					title()							const	{ return _analysis ? tq(_analysis->title())		: "";		}
 	QString					name()							const	{ return _analysis ? tq(_analysis->name())		: "";		}
+	QString					qmlName()						const	{ return _analysis ? tq(_analysis->qmlName())	: "";		}
 	QString					module()						const	{ return _analysis ? tq(_analysis->module())	: "";		}
 	QString					version()						const	{ return _analysis ? tq(_analysis->moduleVersion().asString()) : "";	}
 	bool					hasVolatileNotes()				const	{ return _hasVolatileNotes;									}

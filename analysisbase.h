@@ -28,6 +28,7 @@ public:
 	virtual bool needsRefresh()												const	{ return false;				}
 	virtual const std::string & module()									const	{ return emptyString;		}
 	virtual const std::string & name()										const	{ return emptyString;		}
+	virtual const std::string & qmlName()									const	{ return emptyString;		}
 	virtual const std::string & title()										const	{ return emptyString;		}
 	virtual void setTitle(const std::string& titel)									{}
 	virtual void preprocessMarkdownHelp(const QString& md)					const	{}

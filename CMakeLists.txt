@@ -33,6 +33,8 @@ if(BUILDING_JASP)
    add_definitions(-DBUILDING_JASP)
 endif()
 
+add_definitions(-DNO_JASPDESKTOP)
+
 set(CMAKE_MESSAGE_CONTEXT_SHOW ON)
 
 set(CMAKE_CXX_STANDARD 17)

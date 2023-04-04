@@ -6,7 +6,10 @@
 #include <queue>
 #include "timers.h"
 #include "log.h"
-#include "preferencesmodelbase.h"
+#ifndef NO_JASPDESKTOP
+#include "gui/preferencesmodel.h"
+#include "data/datasetpackage.h"
+#endif
 #include "jasptheme.h"
 #include <QScreen>
 #include <iostream>
@@ -39,8 +42,10 @@ DataSetView::DataSetView(QQuickItem *parent) : QQuickItem (parent)
 	connect(this, &DataSetView::itemSizeChanged,				this, &DataSetView::reloadRowNumbers);
 	connect(this, &DataSetView::itemSizeChanged,				this, &DataSetView::reloadColumnHeaders);
 
-	//connect(PreferencesModelBase::prefs(), &PreferencesModel::uiScaleChanged,		this, &DataSetView::resetItems, Qt::QueuedConnection);
-	//connect(PreferencesModelBase::prefs(), &PreferencesModel::interfaceFontChanged,	this, &DataSetView::resetItems, Qt::QueuedConnection);
+#ifndef NO_JASPDESKTOP
+	connect(PreferencesModel::prefs(), &PreferencesModel::uiScaleChanged,		this, &DataSetView::resetItems, Qt::QueuedConnection);
+	connect(PreferencesModel::prefs(), &PreferencesModel::interfaceFontChanged,	this, &DataSetView::resetItems, Qt::QueuedConnection);
+#endif
 
 	setZ(10);
 
@@ -116,7 +121,8 @@ void DataSetView::modelDataChanged(const QModelIndex &topLeft, const QModelIndex
 
 	if (_cacheItems || int(_cellSizes[size_t(col)].width() * 10) != int(calcSize.width() * 10)) //If we cache items we are not expecting the user to make regular manual changes to the data, so if something changes we can do a reset. Otherwise we are in TableView and we do it only when the column size changes.
 		calculateCellSizes();
-	/*else if (roles.contains(int(DataSetPackage::specialRoles::selected)) || roles.contains(Qt::DisplayRole))
+#ifndef NO_JASPDESKTOP
+	else if (roles.contains(int(DataSetPackage::specialRoles::selected)) || roles.contains(Qt::DisplayRole))
 	{
 		// This is a special case for the VariablesWindows & TableView: caching mixed up the items, so it can't be used
 		// but the selected context property must be updated for VariablesWindows
@@ -135,9 +141,9 @@ void DataSetView::modelDataChanged(const QModelIndex &topLeft, const QModelIndex
 						context->setContextProperty("itemText", _model->data(_model->index(row, col)));
 				}
 			}
-	} */
+	}
+#endif
 
-	
 	//The following else would be good but it doesnt seem to work on mac for some reason. It does work on linux though
 	/*else 
 		for(size_t row=topLeft.row(); row<=bottomRight.row(); row++)

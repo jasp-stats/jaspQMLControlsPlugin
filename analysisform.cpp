@@ -268,16 +268,14 @@ QString AnalysisForm::parseOptions(const QString &options, const QString& data)
 
 	_rSyntax->parseRSyntaxOptions(jsonOptions);
 
-	QString error = getError();
-	if (error.isEmpty())
-	{
+	if (!hasError())
 		bindTo(jsonOptions);
-		error = getError();
-	}
-	if (error.isEmpty())
-		return tq(_analysis->boundValues().toStyledString());
-	else
-		return "{ \"error\": \"" + getError() + "\"}";
+
+	Json::Value result(Json::objectValue);
+	result["error"] = getError().toStdString();
+	result["options"] = boundValues();
+
+	return tq(result.toStyledString());
 }
 
 void AnalysisForm::_setUp()

@@ -117,7 +117,10 @@ bool ListModelAssignedInterface::checkAllowedTerms(Terms& terms)
 
 	QString notAllowedTermsStr = notAllowedTerms.asQList().join(", ");
 	if (notAllowedTerms.size() == 1)
-		listView()->addControlWarningTemporary(tr("This variable has been removed, because it is not allowed: %1").arg(notAllowedTermsStr));
+	{
+		QString termType = tq(columnTypeToString((columnType)requestInfo(VariableInfo::VariableType, notAllowedTermsStr).toInt()));
+		listView()->addControlWarningTemporary(tr("Variable %1 of type %2 has been removed, because it is not allowed").arg(notAllowedTermsStr).arg(termType));
+	}
 	else
 		listView()->addControlWarningTemporary(tr("These variables have been removed, because they are not allowed: %1").arg(notAllowedTermsStr));
 

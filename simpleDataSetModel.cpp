@@ -24,7 +24,7 @@ QVariant SimpleDataSetModel::provideInfo(VariableInfo::InfoType info, const QStr
 
 		}
 
-		if (!_columns.contains(colName) || row >= _rowCount)
+		if (!_columns.contains(colName))
 			return "";
 
 		switch(info)

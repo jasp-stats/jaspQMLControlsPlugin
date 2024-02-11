@@ -48,10 +48,8 @@ signals:
 	void destroyed(ListModelDraggable * me);
 
 protected:
-	bool						_copyTermsWhenDropped;
-	bool						_addNewAvailableTermsToAssignedModel	= false;
-	bool						_allowAnalysisOwnComputedColumns		= true;
-	JASP::DropMode				_dropMode								= JASP::DropMode::DropNone;
+	bool				_copyTermsWhenDropped;
+	JASP::DropMode		_dropMode								= JASP::DropMode::DropNone;
 		
 	bool						isAllowed(const Term &term) const;
 };

@@ -17,17 +17,16 @@
 //
 
 import QtQuick
-import QtQuick.Layouts
-import JASP.Controls
+import QtQuick.Layouts as QTL
 
 
-GridLayout
+QTL.GridLayout
 {
 	id:						gridLayout
 	rowSpacing:				jaspTheme.rowGridSpacing
 	columnSpacing:			jaspTheme.columnGridSpacing
 	columns:				2
-	Layout.alignment:		Qt.AlignTop | Qt.AlignLeft
+	QTL.Layout.alignment:		Qt.AlignTop | Qt.AlignLeft
 	
 	property int count									: children.length
 	property bool checkFormOverflowWhenLanguageChanged	: true
@@ -63,7 +62,7 @@ GridLayout
 
 	function checkFormOverflow()
 	{
-		if ((typeof form === 'undefined') || !form) return false;
+		if ((typeof jaspForm === 'undefined') || !jaspForm) return false;
 
 		var startColumns = gridLayout.columns;
 
@@ -78,7 +77,7 @@ GridLayout
 			for (var i = 0; i < gridLayout.children.length; i++)
 			{
 				var child = gridLayout.children[i];
-				if (child.mapToItem(form, child.width, 0).x > form.width)
+				if (child.mapToItem(jaspForm, child.width, 0).x > jaspForm.width)
 					decrementColumns = true;
 			}
 

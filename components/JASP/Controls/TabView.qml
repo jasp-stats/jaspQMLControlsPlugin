@@ -18,7 +18,7 @@
 
 
 import QtQuick
-import QtQuick.Controls as QtControls
+import QtQuick.Controls as QTC
 import QtQuick.Layouts
 import JASP.Controls
 
@@ -65,7 +65,7 @@ ComponentsListBase
 	{
 		id: defaultButtonButton
 
-		QtControls.TabButton
+		QTC.TabButton
 		{
 			id		: tabButton
 			width	: Math.min(100, (rectangleItem.width - itemRepeater.count - (showAddIcon ? addIconItem.width : 0)) / itemRepeater.count)
@@ -168,7 +168,7 @@ ComponentsListBase
 		z				: 2
 	}
 
-	QtControls.TabBar
+	QTC.TabBar
 	{
 		id				: itemTabBar
 		anchors

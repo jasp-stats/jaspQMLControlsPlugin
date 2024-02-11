@@ -17,7 +17,7 @@
 //
 
 import QtQuick
-import QtQuick.Controls as QtC
+import QtQuick.Controls as QTC
 import JASP.Controls
 
 CheckBoxBase
@@ -34,7 +34,7 @@ CheckBoxBase
     
 	Component.onCompleted: control.clicked.connect(clicked);
     
-	QtC.Switch
+	QTC.Switch
 	{
 		id:				control
 		anchors.fill:	parent

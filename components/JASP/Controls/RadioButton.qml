@@ -17,9 +17,8 @@
 //
 
 import QtQuick
-import QtQuick.Controls	as QtC
+import QtQuick.Controls as QTC
 import JASP.Controls
-
 
 RadioButtonBase
 {
@@ -52,7 +51,7 @@ RadioButtonBase
 	onClicked: { radioButton.clickHandler(); }
 
 
-	QtC.RadioButton
+	QTC.RadioButton
 	{
 		id:					control
 		padding:			jaspTheme.jaspControlPadding
@@ -139,6 +138,11 @@ RadioButtonBase
 			}
 		}
 		registerWithParent();
+	}
+
+	Component.onDestruction:
+	{
+		unregisterRadioButton();
 	}
 }
 

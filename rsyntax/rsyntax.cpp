@@ -77,20 +77,24 @@ bool RSyntax::setControlNameToRSyntaxMap(const QVariantList &conversions)
 	return false;
 }
 
-QString RSyntax::generateSyntax(bool showAllOptions) const
+QString RSyntax::generateSyntax(bool showAllOptions, bool useHtml) const
 {
 	QString result;
 
-	result = _analysisFullName() + "(\n";
+	QString newLine = useHtml ? "<br>" : "\n",
+			indent = useHtml ? "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" : FunctionOptionIndent;
+
+
+	result = _analysisFullName() + "(" + newLine;
 	if (showAllOptions)
-		result += FunctionOptionIndent + "data = NULL,\n";
-	result += FunctionOptionIndent + "version = \"" + _form->version() + "\"";
+		result += indent + "data = NULL," + newLine;
+	result += indent + "version = \"" + _form->version() + "\"";
 
 	QStringList formulaSources;
-	for (Formula* formula : _formulas)
+	for (FormulaBase* formula : _formulas)
 	{
 		bool isNull = false;
-		result += ",\n" + formula->toString(isNull);
+		result += "," + newLine + formula->toString(newLine, indent, isNull);
 		if (!isNull)
 			formulaSources.append(formula->modelSources());
 	}
@@ -121,7 +125,7 @@ QString RSyntax::generateSyntax(bool showAllOptions) const
 				isDifferent = !qFuzzyCompare(defaultValue.asDouble(), foundValue.asDouble());
 			if (isDifferent)
 			{
-				result += ",\n" + FunctionOptionIndent + getRSyntaxFromControlName(control) + " = ";
+				result += "," + newLine + indent + getRSyntaxFromControlName(control) + " = ";
 
 				JASPListControl* listControl = qobject_cast<JASPListControl*>(control);
 				if (listControl && !listControl->hasRowComponent() && listControl->containsInteractions())
@@ -163,10 +167,10 @@ QString RSyntax::generateWrapper() const
 	result += _form->name() + " <- function(\n";
 	result += FunctionOptionIndent + "data = NULL,\n";
 	result += FunctionOptionIndent + "version = \"" + form()->version() + "\"";
-	for (Formula* formula : _formulas)
+	for (FormulaBase* formula : _formulas)
 		result += ",\n" + FunctionOptionIndent + formula->name() + " = NULL";
 
-	for (Formula* formula : _formulas)
+	for (FormulaBase* formula : _formulas)
 	{
 		QStringList extraOptions = formula->extraOptions();
 		for (const QString& extraOption : extraOptions)
@@ -175,7 +179,7 @@ QString RSyntax::generateWrapper() const
 
 	const Json::Value& boundValues = _form->boundValues();
 	QStringList optionsWithFormula;
-	for (Formula* formula : _formulas)
+	for (FormulaBase* formula : _formulas)
 		optionsWithFormula += formula->extraOptions(true, true);
 
 	for (const std::string& member : boundValues.getMemberNames())
@@ -209,7 +213,7 @@ QString RSyntax::generateWrapper() const
 	+ FunctionLineIndent + "options[[\"data\"]] <- NULL\n"
 	+ FunctionLineIndent + "options[[\"version\"]] <- NULL\n\n";
 
-	for (Formula* formula : _formulas)
+	for (FormulaBase* formula : _formulas)
 	{
 		result += ""
 		+ FunctionLineIndent + "if (!is.null(formula)) {\n"
@@ -239,7 +243,7 @@ QString RSyntax::generateWrapper() const
 	}
 
 	result += ""
-	+ FunctionLineIndent + "return(jaspBase::runWrappedAnalysis(\"" + _form->module() + "\", \"" + _form->name() + "\", \"" + _form->qmlName() + "\", data, options, version))\n"
+	+ FunctionLineIndent + "return(jaspBase::runWrappedAnalysis(\"" + _analysisFullName() + "\", data, options, version))\n"
 	+ "}";
 
 	return result;
@@ -247,23 +251,23 @@ QString RSyntax::generateWrapper() const
 
 void RSyntax::setUp()
 {
-	for (Formula* formula : _formulas)
+	for (FormulaBase* formula : _formulas)
 	{
 		formula->setUp();
-		connect(formula,	&Formula::somethingChanged, this, &RSyntax::somethingChanged, Qt::QueuedConnection);
+		connect(formula,	&FormulaBase::somethingChanged, this, &RSyntax::somethingChanged, Qt::QueuedConnection);
 	}
 }
 
-Formula* RSyntax::getFormula(const QString& name) const
+FormulaBase* RSyntax::getFormula(const QString& name) const
 {
-	for (Formula* formula : _formulas)
+	for (FormulaBase* formula : _formulas)
 		if (formula->name() == name)
 			return formula;
 
 	return nullptr;
 }
 
-void RSyntax::addFormula(Formula *formula)
+void RSyntax::addFormula(FormulaBase *formula)
 {
 	if (getFormula(formula->name()))
 		_form->addFormError(tr("Formula with name '%1' is defined twice").arg(formula->name()));
@@ -336,7 +340,7 @@ bool RSyntax::parseRSyntaxOptions(Json::Value &options) const
 		}
 	}
 
-	for (Formula* formula : _formulas)
+	for (FormulaBase* formula : _formulas)
 		formula->parseRSyntaxOptions(options);
 
 	return !hasError();

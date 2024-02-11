@@ -15,15 +15,18 @@ ALTNavScope::ALTNavScope(QObject* attachee)
 		if(_attachee) //is a visual item
 		{
 			//create a visual tag
-			QQmlComponent component(qmlEngine(_attachee), QUrl("qrc:///components/JASP/Widgets/ALTNavTag.qml"), _attachee);
+			QQmlComponent component(qmlEngine(_attachee), QUrl("qrc:///components/JASP/Controls/ALTNavTag.qml"), _attachee);
 			_attachedTag = qobject_cast<ALTNavTagBase*>(component.create());
-			_attachedTag->setParentItem(_attachee);
-			_attachedTag->setParent(_attachee);
+			if (_attachedTag)
+			{
+				_attachedTag->setParentItem(_attachee);
+				_attachedTag->setParent(_attachee);
 
-			//Find parent when attachee parent changes or component is completed (this is when registration of any parent is guaranteed)
-			QObject* attached_component = qmlAttachedPropertiesObject<QQmlComponent>(_attachee);
-			connect(attached_component, SIGNAL(completed()), this, SLOT(init()));
-			connect(_attachee, &QQuickItem::parentChanged, this, &ALTNavScope::registerWithParent);
+				//Find parent when attachee parent changes or component is completed (this is when registration of any parent is guaranteed)
+				QObject* attached_component = qmlAttachedPropertiesObject<QQmlComponent>(_attachee);
+				connect(attached_component, SIGNAL(completed()), this, SLOT(init()));
+				connect(_attachee, &QQuickItem::parentChanged, this, &ALTNavScope::registerWithParent);
+			}
 		}
 	}
 }
@@ -33,7 +36,7 @@ ALTNavScope::~ALTNavScope()
 	setParentScope(nullptr);
 	for (ALTNavScope* child : _childScopes)
 		child->setParentScope(nullptr);
-	ALTNavControl::getInstance()->unregister(_attachee);
+	ALTNavControl::ctrl()->unregister(_attachee);
 	delete _postfixBroker;
 }
 
@@ -42,7 +45,7 @@ void ALTNavScope::registerWithParent()
 	if (_root)
 		return;
 
-	ALTNavControl* ctrl = ALTNavControl::getInstance();
+	ALTNavControl* ctrl = ALTNavControl::ctrl();
 	ALTNavScope* newParentScope = nullptr;
 
 	if(_parentOverride)
@@ -77,10 +80,10 @@ void ALTNavScope::registerWithParent()
 void ALTNavScope::addChild(ALTNavScope *child)
 {
 	_childScopes.push_back(child);
-	ALTNavControl* ctrl = ALTNavControl::getInstance();
+	ALTNavControl* ctrl = ALTNavControl::ctrl();
 	if(ctrl->dynamicTreeUpdate())
 	{
-		ctrl->getCurrentNode()->setChildrenActive(ctrl->AltNavEnabled());
+		ctrl->getCurrentNode()->setChildrenActive(ctrl->AltNavActive());
 		setChildrenPrefix();
 	}
 }
@@ -88,10 +91,10 @@ void ALTNavScope::addChild(ALTNavScope *child)
 void ALTNavScope::removeChild(ALTNavScope *child)
 {
 	_childScopes.removeOne(child);
-	ALTNavControl* ctrl = ALTNavControl::getInstance();
+	ALTNavControl* ctrl = ALTNavControl::ctrl();
 	if(ctrl->dynamicTreeUpdate())
 	{
-		ctrl->getCurrentNode()->setChildrenActive(ctrl->AltNavEnabled());
+		ctrl->getCurrentNode()->setChildrenActive(ctrl->AltNavActive());
 		setChildrenPrefix();
 	}
 }
@@ -119,7 +122,7 @@ void ALTNavScope::init()
 
 void ALTNavScope::traverse(QString input)
 {
-	ALTNavControl* ctrl = ALTNavControl::getInstance();
+	ALTNavControl* ctrl = ALTNavControl::ctrl();
 
 	bool matchPossible = false;
 	for(ALTNavScope* scope : qAsConst(_childScopes))
@@ -143,7 +146,7 @@ void ALTNavScope::traverse(QString input)
 	if(!matchPossible)
 	{
 		ctrl->setCurrentNode(ctrl->getCurrentRoot());
-		ctrl->setAltNavEnabled(false);
+		ctrl->setAltNavActive(false);
 	}
 
 }
@@ -190,7 +193,7 @@ void ALTNavScope::setForeground(bool onForeground)
 	if(onForeground == _foreground)
 		return;
 
-	ALTNavControl* ctrl = ALTNavControl::getInstance();
+	ALTNavControl* ctrl = ALTNavControl::ctrl();
 	_foreground = onForeground;
 	if (onForeground) // set ourselfs as the currentNode
 	{

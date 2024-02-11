@@ -19,7 +19,7 @@
 #include "factorsformbase.h"
 #include "boundcontrols/boundcontrolterms.h"
 #include "analysisform.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "variableslistbase.h"
 #include "log.h"
 

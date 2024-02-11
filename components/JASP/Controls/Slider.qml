@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Controls as QtC
+import QtQuick.Controls as QTC
 import JASP.Controls
 import QtQuick.Layouts
 
@@ -44,7 +44,7 @@ SliderBase
 			color:		enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled
 		}
 
-		QtC.Slider
+		QTC.Slider
 		{
 			id:					control
 			Layout.alignment:	Qt.AlignCenter

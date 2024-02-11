@@ -17,7 +17,7 @@
 //
 
 #include "listmodelfactorsform.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "controls/variableslistbase.h"
 #include "log.h"
 #include "controls/jaspcontrol.h"

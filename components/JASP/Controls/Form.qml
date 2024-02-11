@@ -15,8 +15,8 @@
 // License along with this program.  If not, see
 // <http://www.gnu.org/licenses/>.
 //
-import QtQuick			2.11
-//import QtQuick.Controls 2.4
+import QtQuick
+import QtQuick.Controls as QTC
 import JASP.Controls
 
 AnalysisForm
@@ -30,6 +30,8 @@ AnalysisForm
 	
 	default property alias	content		: contentArea.children
 	property alias	form				: form
+	property alias	jaspForm			: form
+	property alias	jaspAnalysis		: form.analysis
 	property alias	_contentArea		: contentArea
 	property real	minimumYMsgs		: warningMessagesBox.height + warningMessagesBox.y
 	property int	majorVersion		: 1
@@ -46,9 +48,9 @@ AnalysisForm
 
 	Keys.onPressed: (event) => { event.accepted = true; } //dont let leftover input propagate upwards
 
-	//ALTNavigation.enabled:			visible
-	//ALTNavigation.scopeOnly:		true
-	//ALTNavigation.parent:			null //default root
+	ALTNavigation.enabled:			visible
+	ALTNavigation.scopeOnly:		true
+	ALTNavigation.parent:			null //default root
 					
 	MouseArea
 	{
@@ -181,7 +183,7 @@ AnalysisForm
 			anchors.top:		warningMessagesBox.bottom
 			width:				parent.width
 			height:				visible ? rScriptArea.y + rScriptArea.height : 0
-			visible:			preferencesModel.showRSyntax
+			visible:			preferencesModel.showRSyntax && showRButton
 
 			Button
 			{
@@ -189,9 +191,9 @@ AnalysisForm
 				visible:            DEBUG_MODE || form.developerMode
 				height:				visible ? implicitHeight : 0
 				label:				qsTr("Generate Wrapper")
-				//onClicked:			popup.open()
+				onClicked:			popup.open()
 
-				/*Popup
+				QTC.Popup
 				{
 					id: popup
 
@@ -212,7 +214,7 @@ AnalysisForm
 						control.selectByKeyboard:	true
 						onVisibleChanged:			if (visible) 	text = form.generateWrapper()
 					}
-				} */
+				}
 			}
 
 			CheckBox

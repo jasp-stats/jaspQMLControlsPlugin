@@ -21,6 +21,7 @@ public:
 
 	QVariant					provideInfo(VariableInfo::InfoType info, const QString& colName = "", int row = 0)		const	override;
 	QAbstractItemModel*			providerModel()																					override	{ return this;	}
+	QQmlContext*				providerQMLContext()																	const	override;
 
 	void						setData(const Json::Value& value);
 
@@ -40,8 +41,9 @@ private:
 
 	QVector<QString> getNames() const;
 
-	int									_rowCount = 0;
+	int									_rowCount	= 0;
 	QMap<QString,  SimpleColumnType>	_columns;
+	QQmlEngine*							_engine		= nullptr;
 };
 
 

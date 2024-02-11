@@ -21,6 +21,7 @@ import QtQuick
 import QtQuick.Layouts	as L
 import JASP.Controls
 
+
 RadioButtonsGroupBase
 {
 	id:					control
@@ -83,5 +84,4 @@ RadioButtonsGroupBase
 		z:					-1
 		visible:			preferencesModel.developerMode
 	}
-
 }

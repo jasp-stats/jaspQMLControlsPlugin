@@ -59,12 +59,12 @@ public:
 	 * \brief Turns the ALT navigation mode on or off.
 	 * \param value
 	 */
-	void setAltNavEnabled(bool value);
+	void setAltNavActive(bool value);
 	/*!
 	 * \brief Returns whether ALT navigation mode is on or off
 	 * \return
 	 */
-	bool AltNavEnabled();
+	bool AltNavActive();
 
 
 	void setCurrentNode(ALTNavScope* scope);
@@ -77,13 +77,16 @@ public:
 	/*!
 	 * \brief returns the ALTNavControl singleton
 	 */
-	static ALTNavControl* getInstance();
+	static ALTNavControl* ctrl();
 	ALTNavControl(ALTNavControl& other) = delete;
 	void operator=(const ALTNavControl&) = delete;
 
+public slots:
+	void enableAlTNavigation(bool state);
+
 signals:
 	void altNavInputChanged();
-	void altNavEnabledChanged();
+	void altNavActiveChanged();
 
 private:
 	static ALTNavControl* _instance;
@@ -94,6 +97,7 @@ private:
 	ALTNavScope* _defaultRoot = nullptr;
 
 	bool _altNavEnabled = false;
+	bool _altNavActive = false;
 	bool _dynamicTreeUpdate = false;
 	QString _currenAltNavInput = "";
 

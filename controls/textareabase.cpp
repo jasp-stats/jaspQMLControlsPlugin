@@ -31,8 +31,6 @@
 
 #include "log.h"
 
-using namespace JASP;
-
 TextAreaBase::TextAreaBase(QQuickItem* parent)
 	: JASPListControl(parent)
 {
@@ -41,10 +39,10 @@ TextAreaBase::TextAreaBase(QQuickItem* parent)
 
 void TextAreaBase::setUpModel()
 {
-	if (_textType == TextType::TextTypeSource || _textType == TextType::TextTypeJAGSmodel || _textType == TextType::TextTypeLavaan || _textType == TextType::TextTypeCSem)
+	if (_textType == JASP::TextType::TextTypeSource || _textType == JASP::TextType::TextTypeJAGSmodel || _textType == JASP::TextType::TextTypeLavaan || _textType == JASP::TextType::TextTypeCSem)
 	{
 		_model = new ListModelTermsAvailable(this);
-		_model->setNeedsSource(_textType == TextType::TextTypeLavaan || _textType == TextType::TextTypeCSem);
+		_model->setNeedsSource(_textType == JASP::TextType::TextTypeLavaan || _textType == JASP::TextType::TextTypeCSem);
 
 		JASPListControl::setUpModel();
 	}
@@ -54,11 +52,11 @@ void TextAreaBase::setUp()
 {
 	switch (_textType)
 	{
-	case TextType::TextTypeSource:		_boundControl = new BoundControlSourceTextArea(this);	break;
-	case TextType::TextTypeLavaan:		_boundControl = new BoundControlLavaanTextArea(this);	break;
-	case TextType::TextTypeJAGSmodel:	_boundControl = new BoundControlJAGSTextArea(this);		break;
-	case TextType::TextTypeCSem:		_boundControl = new BoundControlCSemTextArea(this);		break;
-	default:							_boundControl = new BoundControlTextArea(this);			break;
+	case JASP::TextType::TextTypeSource:	_boundControl = new BoundControlSourceTextArea(this);	break;
+	case JASP::TextType::TextTypeLavaan:	_boundControl = new BoundControlLavaanTextArea(this);	break;
+	case JASP::TextType::TextTypeJAGSmodel:	_boundControl = new BoundControlJAGSTextArea(this);		break;
+	case JASP::TextType::TextTypeCSem:		_boundControl = new BoundControlCSemTextArea(this);		break;
+	default:								_boundControl = new BoundControlTextArea(this);			break;
 	}
 
 	JASPListControl::setUp();
@@ -72,7 +70,12 @@ void TextAreaBase::setUp()
 			_separators.push_back(separator.toString());
 	}
 
-	connect(this, SIGNAL(applyRequest()), this, SLOT(checkSyntaxHandler()));
+	//If "rowCount" changes on VariableInfo it means a column has been added or removed, this means the model should be reencoded and checked
+	//Fixes https://github.com/jasp-stats/jasp-issues/issues/2462
+	connect(VariableInfo::info(),	&VariableInfo::rowCountChanged,		this,		&TextAreaBase::checkSyntaxHandler);
+
+	//Also do it on request of course ;)
+	connect(this,					&TextAreaBase::applyRequest,		this,		&TextAreaBase::checkSyntaxHandler);
 }
 
 void TextAreaBase::rScriptDoneHandler(const QString & result)
@@ -102,7 +105,7 @@ void TextAreaBase::setText(const QString& text)
 
 void TextAreaBase::termsChangedHandler()
 {
-	if (_textType == TextType::TextTypeLavaan || _textType == TextType::TextTypeCSem && form() && initialized())
+	if (_textType == JASP::TextType::TextTypeLavaan || _textType == JASP::TextType::TextTypeCSem && form() && initialized())
 		form()->refreshAnalysis();
 
 }

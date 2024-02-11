@@ -23,7 +23,7 @@
 #include <QDataStream>
 #include <QIODevice>
 #include <QSet>
-#include "utilities/qutils.h"
+#include "qutils.h"
 
 using namespace std;
 

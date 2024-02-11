@@ -1,6 +1,6 @@
 #include "jasptheme.h"
 #include "log.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "preferencesmodelbase.h"
 #include <QFontDatabase>
 
@@ -1168,6 +1168,16 @@ void JaspTheme::setFont(QFont font)
 	_font = font;
 	emit fontChanged(_font);
 }
+
+void JaspTheme::setFontLink(QFont fontLink)
+{
+	if (_fontLink == fontLink)
+		return;
+
+	_fontLink = fontLink;
+	emit fontLinkChanged(_fontLink);
+}
+
 
 void JaspTheme::setFontLabel(QFont fontLabel)
 {

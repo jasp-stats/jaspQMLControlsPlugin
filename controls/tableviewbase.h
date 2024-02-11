@@ -23,15 +23,13 @@
 #include "boundcontrols/boundcontroltableview.h"
 #include "models/listmodeltableviewbase.h"
 
-using namespace JASP;
-
 class TableViewBase : public JASPListControl, public BoundControl
 {
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY( ModelType		modelType			READ modelType				WRITE setModelType				NOTIFY modelTypeChanged					)
-	Q_PROPERTY( ItemType		itemType			READ itemType				WRITE setItemType				NOTIFY itemTypeChanged					)
+	Q_PROPERTY( JASP::ModelType	modelType			READ modelType				WRITE setModelType				NOTIFY modelTypeChanged					)
+	Q_PROPERTY( JASP::ItemType	itemType			READ itemType				WRITE setItemType				NOTIFY itemTypeChanged					)
 	Q_PROPERTY( QVariantList	itemTypePerColumn	READ itemTypePerColumn		WRITE setItemTypePerColumn		NOTIFY itemTypePerColumnChanged			)
 	Q_PROPERTY( QVariantList	itemTypePerRow		READ itemTypePerRow			WRITE setItemTypePerRow			NOTIFY itemTypePerRowChanged			)
 	Q_PROPERTY( QVariant		defaultValue		READ defaultValue			WRITE setDefaultValue			NOTIFY defaultValueChanged				)
@@ -70,10 +68,10 @@ public:
 	void						setUp()												override;
 	void						rScriptDoneHandler(const QString & result)			override;
 
-	ItemType itemTypePerItem(int col = -1, int row = -1) const;
+	JASP::ItemType itemTypePerItem(int col = -1, int row = -1) const;
 
-	ModelType					modelType()									const				{ return _modelType;									}
-	ItemType					itemType()									const				{ return _itemType;										}
+	JASP::ModelType				modelType()									const				{ return _modelType;									}
+	JASP::ItemType				itemType()									const				{ return _itemType;										}
 	QVariant					defaultValue(int colIndex = -1, int rowIndex = -1);
 	QVariantList				itemTypePerRow()							const				{ QVariantList l; for (auto t : _itemTypePerRow) l.append(int(t)); return l;	}
 	QVariantList				itemTypePerColumn()							const				{ QVariantList l; for (auto t : _itemTypePerColumn) l.append(int(t)); return l;	}
@@ -131,8 +129,8 @@ public slots:
 protected slots:
 	void						termsChangedHandler()							override;
 
-	GENERIC_SET_FUNCTION(ModelType,				_modelType,				modelTypeChanged,			ModelType	)
-	GENERIC_SET_FUNCTION(ItemType,				_itemType,				itemTypeChanged,			ItemType	)
+	GENERIC_SET_FUNCTION(ModelType,				_modelType,				modelTypeChanged,			JASP::ModelType	)
+	GENERIC_SET_FUNCTION(ItemType,				_itemType,				itemTypeChanged,			JASP::ItemType	)
 	GENERIC_SET_FUNCTION(DefaultValue,			_defaultValue,			defaultValueChanged,		QVariant	)
 	GENERIC_SET_FUNCTION(InitialRowCount,		_initialRowCount,		initialRowCountChanged,		int			)
 	GENERIC_SET_FUNCTION(InitialColumnCount,	_initialColumnCount,	initialColumnCountChanged,	int			)
@@ -157,9 +155,9 @@ private slots:
 
 private:
 	QVariant				_defaultValue;
-	ModelType				_modelType				= ModelType::Simple;
-	ItemType				_itemType				= ItemType::Double;
-	QList<ItemType>			_itemTypePerRow,
+	JASP::ModelType			_modelType				= JASP::ModelType::Simple;
+	JASP::ItemType			_itemType				= JASP::ItemType::Double;
+	QList<JASP::ItemType>	_itemTypePerRow,
 							_itemTypePerColumn;
 	int						_initialRowCount		= 0,
 							_initialColumnCount		= 0,

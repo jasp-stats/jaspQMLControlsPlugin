@@ -24,14 +24,16 @@ import JASP.Controls
 
 VariablesListBase
 {
-	id						: variablesList
-	implicitHeight			: maxRows === 1 ? jaspTheme.defaultSingleItemListHeight : jaspTheme.defaultVariablesFormHeight
-	background				: itemRectangle
-	implicitWidth 			: parent.width
-	shouldStealHover		: false
-	innerControl			: itemGridView
-	optionKey				: listViewType === JASP.Interaction ? "components" : "variable"
-	maxRows					: singleVariable ? 1 : -1
+	id								: variablesList
+	implicitHeight					: maxRows === 1 ? jaspTheme.defaultSingleItemListHeight : jaspTheme.defaultVariablesFormHeight
+	background						: itemRectangle
+	implicitWidth					: parent.width
+	shouldStealHover				: false
+	innerControl					: itemGridView
+	optionKey						: listViewType === JASP.Interaction ? "components" : "variable"
+	maxRows							: singleVariable ? 1 : -1
+	addAvailableVariablesToAssigned	: listViewType === JASP.Interaction
+	allowAnalysisOwnComputedColumns	: true
 
 	property alias	label							: variablesList.title
 	property alias	itemGridView					: itemGridView
@@ -53,8 +55,6 @@ VariablesListBase
 	property bool	showVariableTypeIcon			: containsVariables
 	property bool	addInteractionsByDefault		: true
 	property bool	interactionContainLowerTerms	: true
-	property bool	addAvailableVariablesToAssigned	: listViewType === JASP.Interaction
-	property bool	allowAnalysisOwnComputedColumns	: true
 	property bool	allowDuplicatesInMultipleColumns: false // This property is used in the constructor and is not updatable afterwards.
 
 	property int	indexInDroppedListViewOfDraggedItem:	-1
@@ -78,26 +78,7 @@ VariablesListBase
 
 	function setEnabledState(source, dragging)
 	{
-		var result = !dragging;
-		if (dragging)
-		{
-			if (source.model.selectedItems().length > 0)
-			{
-				if (variablesList.allowedColumns.length > 0)
-				{
-					result = false;
-					var sourceSelectedItemsTypes = source.model.selectedItemsTypes()
-					for (var i = 0; i < sourceSelectedItemsTypes.length; i++)
-					{
-						var itemType = sourceSelectedItemsTypes[i];
-						if (variablesList.allowedColumns.includes(itemType))
-							result = true;
-					}
-				}
-				else
-					result = true;
-			}
-		}
+		var result = !dragging || areTypesAllowed(source.model.selectedItemsTypes());
 
 		// Do not use variablesList.enabled: this may break the binding if the developer used it in his QML form.
 		itemRectangle.enabled = result
@@ -445,7 +426,7 @@ VariablesListBase
 				property string columnType:			isVariable && (typeof model.columnType !== "undefined") ? model.columnType : ""
 				property var extraItem:				model.rowComponent
 
-				enabled: variablesList.listViewType != JASP.AvailableVariables || !columnType || variablesList.allowedColumns.length == 0 || (variablesList.allowedColumns.indexOf(columnType) >= 0)
+				enabled: variablesList.listViewType != JASP.AvailableVariables || !columnType || variablesList.areTypesAllowed([columnType])
 				
 				function setRelative(draggedRect)
 				{
@@ -524,7 +505,7 @@ VariablesListBase
 						ParentChange
 						{
 							target:						itemRectangle
-							parent:						form
+							parent:						jaspForm
 						}
 						AnchorChanges
 						{

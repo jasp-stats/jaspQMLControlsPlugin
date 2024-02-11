@@ -18,7 +18,7 @@
 
 #include "listmodellayersassigned.h"
 #include "boundcontrols/boundcontrollayers.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 
 using namespace std;
 

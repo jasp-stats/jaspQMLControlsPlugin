@@ -18,7 +18,6 @@
 
 #include "textinputbase.h"
 #include "analysisform.h"
-#include "utils.h"
 
 using namespace std;
 

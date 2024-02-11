@@ -60,6 +60,7 @@ protected:
 	RadioButtonBase* checkedButton() { return _selectedButton; }
 	QList<RadioButtonBase*> buttons() { return _buttons.values(); }
 
+	void _setCheckedButtonHandler();
 	void _setCheckedButton(RadioButtonBase* button);
 
 

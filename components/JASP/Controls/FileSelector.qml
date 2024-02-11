@@ -1,5 +1,5 @@
-import JASP.Controls
 import QtQuick
+import JASP.Controls
 
 TextField
 {

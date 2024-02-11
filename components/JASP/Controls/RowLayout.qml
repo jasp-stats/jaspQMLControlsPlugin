@@ -17,10 +17,10 @@
 //
 
 import QtQuick
-import QtQuick.Layouts
+import QtQuick.Layouts as QTL
 
-RowLayout
+QTL.RowLayout
 {
 	spacing:				jaspTheme.rowGridSpacing
-	Layout.alignment:		Qt.AlignTop | Qt.AlignLeft
+	QTL.Layout.alignment:		Qt.AlignTop | Qt.AlignLeft
 }

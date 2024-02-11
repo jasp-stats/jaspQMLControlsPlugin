@@ -31,15 +31,16 @@ class VariablesListBase : public JASPListControl, public BoundControl
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY( ListViewType	listViewType					READ listViewType					WRITE setListViewType					NOTIFY listViewTypeChanged					)
-	Q_PROPERTY( int				columns							READ columns						WRITE setColumns						NOTIFY columnsChanged						)
-	Q_PROPERTY( QStringList		allowedColumns					READ allowedColumns					WRITE setAllowedColumns					NOTIFY allowedColumnsChanged				)
-	Q_PROPERTY( QStringList		suggestedColumns				READ suggestedColumns				WRITE setSuggestedColumns				NOTIFY suggestedColumnsChanged				)
-	Q_PROPERTY(	QStringList		suggestedColumnsIcons			READ suggestedColumnsIcons													NOTIFY suggestedColumnsIconsChanged			)
-	Q_PROPERTY( QStringList		columnsTypes					READ columnsTypes															NOTIFY columnsTypesChanged					)
-	Q_PROPERTY( QStringList		columnsNames					READ columnsNames															NOTIFY columnsNamesChanged					)
-	Q_PROPERTY( QStringList		dropKeys						READ dropKeys						WRITE setDropKeys						NOTIFY dropKeysChanged						)
-	Q_PROPERTY( QString			interactionHighOrderCheckBox	READ interactionHighOrderCheckBox	WRITE setInteractionHighOrderCheckBox	NOTIFY interactionHighOrderCheckBoxChanged	)
+	Q_PROPERTY( JASP::ListViewType	listViewType					READ listViewType					WRITE setListViewType					NOTIFY listViewTypeChanged					)
+	Q_PROPERTY( int					columns							READ columns						WRITE setColumns						NOTIFY columnsChanged						)
+	Q_PROPERTY( QStringList			allowedColumns					READ allowedColumns					WRITE setAllowedColumns					NOTIFY allowedColumnsChanged				)
+	Q_PROPERTY( QStringList			suggestedColumns				READ suggestedColumns				WRITE setSuggestedColumns				NOTIFY suggestedColumnsChanged				)
+	Q_PROPERTY(	QStringList			suggestedColumnsIcons			READ suggestedColumnsIcons													NOTIFY suggestedColumnsIconsChanged			)
+	Q_PROPERTY( QStringList			columnsTypes					READ columnsTypes															NOTIFY columnsTypesChanged					)
+	Q_PROPERTY( QStringList			columnsNames					READ columnsNames															NOTIFY columnsNamesChanged					)
+	Q_PROPERTY( QStringList			dropKeys						READ dropKeys						WRITE setDropKeys						NOTIFY dropKeysChanged						)
+	Q_PROPERTY( QString				interactionHighOrderCheckBox	READ interactionHighOrderCheckBox	WRITE setInteractionHighOrderCheckBox	NOTIFY interactionHighOrderCheckBoxChanged	)
+
 
 public:
 	VariablesListBase(QQuickItem* parent = nullptr);
@@ -93,8 +94,8 @@ protected:
 	GENERIC_SET_FUNCTION(ColumnsNames,					_columnsNames,					columnsNamesChanged,					QStringList		)
 	GENERIC_SET_FUNCTION(InteractionHighOrderCheckBox,	_interactionHighOrderCheckBox,	interactionHighOrderCheckBoxChanged,	QString			)
 
+	void						_setInitialized(const Json::Value& value = Json::nullValue)	override;
 	void						setDropKeys(const QStringList& dropKeys);
-
 	ListModel*					getRelatedModel();
 
 	ListModelDraggable*			_draggableModel	= nullptr;

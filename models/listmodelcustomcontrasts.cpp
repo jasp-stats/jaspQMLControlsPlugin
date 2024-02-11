@@ -17,7 +17,7 @@
 //
 
 #include "log.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "listmodelcustomcontrasts.h"
 #include "analysisform.h"
 #include "r_functionwhitelist.h"
@@ -266,9 +266,9 @@ QString ListModelCustomContrasts::getItemInputType(const QModelIndex &index) con
 	if (index.column() >= _tableTerms.variables.length())
 	{
 		if (_tableView->itemType() == JASP::ItemType::Double)	return "double";
-		else													return "formula";
+		else															return "formula";
 	}
-	else														return "string";
+	else																return "string";
 }
 
 int ListModelCustomContrasts::getMaximumColumnWidthInCharacters(size_t) const

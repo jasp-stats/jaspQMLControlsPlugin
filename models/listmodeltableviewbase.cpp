@@ -21,7 +21,7 @@
 #include <fstream>
 #include "listmodeltableviewbase.h"
 #include "analysisform.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "controls/tableviewbase.h"
 #include "controls/textinputbase.h"
 #include "utilities/desktopcommunicator.h"
@@ -439,7 +439,7 @@ bool ListModelTableViewBase::valueOk(QVariant value, int col, int row)
 	bool	ok	= true;
 	JASP::ItemType itemType = _tableView->itemTypePerItem(col, row);
 
-	if		(itemType == JASP::ItemType::Double)	value.toDouble(&ok);
+	if		(itemType == JASP::ItemType::Double)		value.toDouble(&ok);
 	else if	(itemType == JASP::ItemType::Integer)	value.toInt(&ok);
 
 	return ok;
@@ -504,5 +504,5 @@ QString ListModelTableViewBase::getItemInputType(const QModelIndex &index) const
 
 	if (itemType == JASP::ItemType::Double)			return "double";
 	else if (itemType == JASP::ItemType::Integer)	return "integer";
-	else											return "string";
+	else													return "string";
 }

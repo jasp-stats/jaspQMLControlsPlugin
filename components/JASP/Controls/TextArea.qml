@@ -1,5 +1,6 @@
 import QtQuick
-import QtQuick.Controls as QtC
+import QtQuick.Controls as QTC
+import QtQuick.Layouts
 import JASP.Controls
 
 TextAreaBase
@@ -22,15 +23,38 @@ TextAreaBase
 	property var    modelParameterView	: null
 	property string separator			: "\n"
 	property var	separators			: []
+	property alias	radius				: flickableRectangle.radius
+	property alias	placeholderText		: control.placeholderText
+	property var	undoModel
+	property bool	useTabAsSpaces		: true
+	property var	nextTabItem
     
-    
-    signal applyRequest()
+	Component.onCompleted: control.editingFinished.connect(editingFinished)
     
 	function userEnteredInput() {
 		if (textArea.trim)
 			textArea.text = textArea.text.trim();
 
 		applyRequest();
+	}
+
+	function undo() {
+		if (undoModel) {
+			undoModel.undo()
+			return true
+		}
+		else
+			return false
+	}
+
+	function redo()
+	{
+		if (undoModel) {
+			undoModel.redo()
+			return true
+		}
+		else
+			return false
 	}
 
 	Text
@@ -44,14 +68,15 @@ TextAreaBase
 
 	Rectangle
 	{
-		id:				flickableRectangle
-		anchors.top:	title !== "" ? textAreaTitle.bottom : parent.top
-		anchors.topMargin: title !== "" ? jaspTheme.titleBottomMargin : 0
-		width:			parent.implicitWidth
-		height:			parent.implicitHeight - (title !== "" ? (textAreaTitle.height + jaspTheme.titleBottomMargin) : 0)
-		color:			textArea.enabled ? jaspTheme.white : jaspTheme.whiteBroken
-		border.width:	1
-		border.color:	jaspTheme.borderColor
+		id:					flickableRectangle
+		anchors.top:		title !== "" ? textAreaTitle.bottom : parent.top
+		anchors.topMargin:	title !== "" ? jaspTheme.titleBottomMargin : 0
+		width:				parent.implicitWidth
+		height:				parent.implicitHeight - (title !== "" ? (textAreaTitle.height + jaspTheme.titleBottomMargin) : 0)
+		color:				textArea.enabled ? jaspTheme.white : jaspTheme.whiteBroken
+		border.width:		1
+		border.color:		jaspTheme.borderColor
+		radius:				jaspTheme.borderRadius
 
 		Flickable
 		{
@@ -60,7 +85,7 @@ TextAreaBase
 			boundsBehavior: Flickable.StopAtBounds
 			anchors.fill:	parent
 
-			QtC.TextArea.flickable: QtC.TextArea
+			QTC.TextArea.flickable: QTC.TextArea
 			{
 				id:					control
 				selectByMouse:		true
@@ -69,33 +94,58 @@ TextAreaBase
 
 				font:				textArea.textType === JASP.TextTypeDefault || textArea.textType === JASP.TextTypeSource ? jaspTheme.font : jaspTheme.fontCode
 				color:				textArea.enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled
-				wrapMode:			QtC.TextArea.Wrap
+
+				Component.onCompleted:
+				{
+					if (textArea.nextTabItem)
+					{
+						control.KeyNavigation.priority = KeyNavigation.BeforeItem
+						control.KeyNavigation.tab =	textArea.nextTabItem
+					}
+				}
 
 				Keys.onPressed: (event) =>
 				{
-					if (event.modifiers & Qt.ControlModifier)
+					var controlPressed	= Boolean(event.modifiers & Qt.ControlModifier)
+					var shiftPressed	= Boolean(event.modifiers & Qt.ShiftModifier  )
+
+					switch (event.key)
 					{
-						if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+					case Qt.Key_Return:
+					case Qt.Key_Enter:
+						if (controlPressed)
 						{
 							userEnteredInput();
 							event.accepted = true;
 						}
-
-					}
-					else if ( event.key === Qt.Key_Tab)
-					{
-						control.insert(control.cursorPosition, "  ")
-						event.accepted = true;
-					}
-					else
-					{
+						break;
+					case Qt.Key_Tab:
+						if (useTabAsSpaces)
+						{
+							control.insert(control.cursorPosition, "  ")
+							event.accepted = true;
+						}
+						break;
+					case Qt.Key_Z:
+						if (controlPressed)
+						{
+							if (shiftPressed)
+							{
+								if (textArea.redo())
+									event.accepted = true;
+							}
+							else if (textArea.undo())
+									event.accepted = true;
+						}
+						break;
+					default:
 						infoText.text = textArea.applyScriptInfo;
 						textArea.hasScriptError = false;
 					}
 				}
 			}
 
-			QtC.ScrollBar.vertical: QtC.ScrollBar { }
+			QTC.ScrollBar.vertical: QTC.ScrollBar { }
 		}
 	}
 

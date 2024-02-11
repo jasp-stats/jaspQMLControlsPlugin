@@ -16,10 +16,25 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-import QtQuick as QTQ
 
-QTQ.Text
+import QtQuick
+import JASP.Controls
+
+DropDown
 {
-		font:					jaspTheme.font
-		color:					enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled
+	name: "colorPalette"
+	label: qsTr("Color palette")
+	indexDefaultValue: 0
+	values:
+	[
+		{ label: qsTr("Colorblind"),		value: "colorblind"		},
+		{ label: qsTr("Colorblind #2"),		value: "colorblind2"	},
+		{ label: qsTr("Colorblind #3"),		value: "colorblind3"	},
+		{ label: qsTr("Viridis"),			value: "viridis"		},
+		{ label: qsTr("ggplot2"),			value: "ggplot2"		},
+		{ label: qsTr("Gray"),				value: "gray"			},
+		{ label: qsTr("Blue"),				value: "blue"			},
+		{ label: qsTr("Sports teams: NBA"),	value: "sportsTeamsNBA"	},
+		{ label: qsTr("Grand Budapest"),	value: "grandBudapest"	}
+	]
 }

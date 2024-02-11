@@ -9,12 +9,13 @@
 #include "models/term.h"
 #include "jaspcontrol.h"
 #include "ALTNavigation/altnavigation.h"
-#include "knownissues.h"
 #include "simpleDataSetModel.h"
 #include <qdebug.h>
+#include "jaspdoublevalidator.h"
+#include "formulabase.h"
 
 //![plugin]
-class JASPQMLComponents : public QQmlEngineExtensionPlugin
+class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID QQmlEngineExtensionInterface_iid)
@@ -52,16 +53,17 @@ class JASPQMLComponents : public QQmlEngineExtensionPlugin
 		engine->rootContext()->setContextProperty("preferencesModel",		new PreferencesModelBase()	);
 		engine->rootContext()->setContextProperty("jaspTheme",				new JaspTheme()	);
 
-
 		qmlRegisterUncreatableMetaObject(JASP::staticMetaObject, // static meta object
-										 "JASP.Controls",          // import statement
-										 0, 1,                         // major and minor version of the import
+										 "JASP.Controls",        // import statement
+										 0, 1,                   // major and minor version of the import
 										 "JASP",                 // name in QML
 										 "Error: only enums");
-		ALTNavigation::registerQMLTypes("JASP.Controls");
 
-		new KnownIssues();
-		new SimpleDataSetModel();
+		ALTNavigation::registerQMLTypes("JASP.Controls");
+		qmlRegisterType<JASPDoubleValidator>						("JASP.Controls",		1, 0, "JASPDoubleValidator"				);
+		qmlRegisterType<FormulaBase>								("JASP.Controls",		1, 0, "Formula"							);
+
+		new SimpleDataSetModel(engine);
 	}
 };
 //![plugin]

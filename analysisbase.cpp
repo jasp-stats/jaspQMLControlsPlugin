@@ -44,6 +44,58 @@ void AnalysisBase::destroyForm()
 		Log::log(false) << " it has no AnalysisForm." << std::endl;
 }
 
+void AnalysisBase::createForm(QQuickItem* parentItem)
+{
+	Log::log() << "Analysis(" << this << ")::createForm() called with parentItem " << parentItem << std::endl;
+
+	setQmlError("");
+	
+	if(parentItem)
+		_parentItem = parentItem;
+
+	if(_analysisForm)
+	{
+		Log::log() << "It already has a form, so we destroy it." << std::endl;
+		
+		if (!parentItem) 
+			parentItem = _analysisForm->parentItem();
+		
+		destroyForm();
+	}
+	else if(!parentItem)
+		parentItem = _parentItem;
+
+	try
+	{
+		Log::log()  << std::endl << "Loading QML form from: " << qmlFormPath(false, false) << std::endl;
+
+		QObject * newForm = instantiateQml(QUrl::fromLocalFile(tq(qmlFormPath(false, false))), module(), qmlContext(parentItem));
+
+		Log::log() << "Created a form, got pointer " << newForm << std::endl;
+
+		_analysisForm = qobject_cast<AnalysisForm *>(newForm);
+
+		if(!_analysisForm)
+			throw std::logic_error("QML file '" + qmlFormPath(false, false) + "' didn't spawn into AnalysisForm, but into: " + (newForm ? fq(newForm->objectName()) : "null"));
+
+		_analysisForm->setAnalysis(this);
+		_analysisForm->setParent(this);
+		_analysisForm->setParentItem(parentItem);
+
+		emit formItemChanged();
+	}
+	catch(qmlLoadError & e)
+	{
+		setQmlError(e.what());
+		_analysisForm = nullptr;
+	}
+	catch(std::exception & e)
+	{
+		setQmlError(e.what());
+		_analysisForm = nullptr;
+	}
+}
+
 std::string AnalysisBase::qmlFormPath(bool, bool) const
 {
 	return module() + "/qml/"  + name();

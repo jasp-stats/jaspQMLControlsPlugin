@@ -37,8 +37,8 @@ class TextAreaBase : public JASPListControl, public BoundControl
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY( TextType	textType			READ textType				WRITE setTextType			NOTIFY textTypeChanged							)
-	Q_PROPERTY( bool		hasScriptError		READ hasScriptError			WRITE setHasScriptError		NOTIFY hasScriptErrorChanged					)
+	Q_PROPERTY( JASP::TextType	textType			READ textType				WRITE setTextType			NOTIFY textTypeChanged							)
+	Q_PROPERTY( bool			hasScriptError		READ hasScriptError			WRITE setHasScriptError		NOTIFY hasScriptErrorChanged					)
 
 public:
 	TextAreaBase(QQuickItem* parent = nullptr);
@@ -76,6 +76,8 @@ public slots:
 signals:
 	void	textTypeChanged();
 	void	hasScriptErrorChanged();
+	void	applyRequest();
+	void	editingFinished();
 
 protected slots:
 	void	termsChangedHandler()		override;

@@ -48,9 +48,9 @@ void JASPListControl::_setupSources()
 {
 	for (SourceItem* sourceItem : _sourceItems)
 	{
-		if (sourceItem->listModel())
+		if (sourceItem->sourceListModel())
 		{
-			JASPListControl* sourceControl = sourceItem->listModel()->listView();
+			JASPListControl* sourceControl = sourceItem->sourceListModel()->listView();
 			disconnect(sourceControl, &JASPListControl::containsVariablesChanged,		this, &JASPListControl::setContainsVariables);
 			disconnect(sourceControl, &JASPListControl::containsInteractionsChanged,	this, &JASPListControl::setContainsInteractions);
 		}
@@ -62,9 +62,9 @@ void JASPListControl::_setupSources()
 
 	for (SourceItem* sourceItem : _sourceItems)
 	{
-		if (sourceItem->listModel())
+		if (sourceItem->sourceListModel())
 		{
-			JASPListControl* sourceControl = sourceItem->listModel()->listView();
+			JASPListControl* sourceControl = sourceItem->sourceListModel()->listView();
 			connect(sourceControl, &JASPListControl::containsVariablesChanged,		this, &JASPListControl::setContainsVariables);
 			connect(sourceControl, &JASPListControl::containsInteractionsChanged,	this, &JASPListControl::setContainsInteractions);
 		}
@@ -86,10 +86,10 @@ void JASPListControl::setContainsVariables()
 	{
 		for (SourceItem* sourceItem : _sourceItems)
 		{
-			if (sourceItem->isColumnsModel())	containsVariables = true;
-			else if (sourceItem->listModel())
+			if (sourceItem->isAnalysisDataSet())	containsVariables = true;
+			else if (sourceItem->sourceListModel())
 			{
-				if (sourceItem->listModel()->listView()->containsVariables() && sourceItem->controlName().isEmpty() && !sourceItem->modelUse().contains("levels"))
+				if (sourceItem->sourceListModel()->listView()->containsVariables() && sourceItem->rowControlName().isEmpty() && !sourceItem->sourceFilter().contains("levels"))
 					containsVariables = true;
 			}
 		}
@@ -120,9 +120,9 @@ void JASPListControl::setContainsInteractions()
 	{
 		for (SourceItem* sourceItem : _sourceItems)
 		{
-			if (sourceItem->listModel())
+			if (sourceItem->sourceListModel())
 			{
-				JASPListControl* sourceControl = sourceItem->listModel()->listView();
+				JASPListControl* sourceControl = sourceItem->sourceListModel()->listView();
 				if (sourceControl->containsInteractions() || sourceItem->generateInteractions())
 					containsInteractions = true;
 			}
@@ -134,6 +134,14 @@ void JASPListControl::setContainsInteractions()
 		_containsInteractions = containsInteractions;
 		emit containsInteractionsChanged();
 	}
+}
+
+void JASPListControl::_termsChangedHandler() 
+{
+	termsChangedHandler();
+	
+	if (containsVariables() && isBound() && model())
+		emit usedVariablesChanged();
 }
 
 void JASPListControl::setUp()
@@ -148,7 +156,7 @@ void JASPListControl::setUp()
 	_setupSources();
 
 	connect(this,								&JASPListControl::sourceChanged,			this,	&JASPListControl::sourceChangedHandler);
-	connect(listModel,							&ListModel::termsChanged,					this,	&JASPListControl::termsChangedHandler);
+	connect(listModel,							&ListModel::termsChanged,					this,	&JASPListControl::_termsChangedHandler);
 	connect(listModel,							&ListModel::termsChanged,					this,	[this]() { emit countChanged(); });
 	connect(listModel,							&ListModel::termsChanged,					this,	&JASPListControl::maxTermsWidthChanged);
 	connect(DesktopCommunicator::singleton(),	&DesktopCommunicator::uiScaleChanged,		this,	&JASPListControl::maxTermsWidthChanged);
@@ -169,6 +177,9 @@ void JASPListControl::cleanUp()
 				for (JASPControl* control : rowControls->getJASPControlsMap().values())
 					control->cleanUp();
 		}
+
+		for (auto source : _sourceItems)
+			source->disconnectModels();
 
 		JASPControl::cleanUp();
 	}
@@ -231,6 +242,18 @@ JASPControl *JASPListControl::getRowControl(const QString &key, const QString &n
 QString JASPListControl::getSourceType(QString name)
 {
 	return model() ? model()->getItemType(name) : "";
+}
+
+bool JASPListControl::areTypesAllowed(QStringList types)
+{
+	bool result = true;
+
+	if (!_variableTypesAllowed.empty())
+		for (const QString& type : types)
+			if (!_variableTypesAllowed.contains(columnTypeFromQString(type)))
+				result = false;
+
+	return result;
 }
 
 int JASPListControl::count()

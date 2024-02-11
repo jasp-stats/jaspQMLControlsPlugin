@@ -19,6 +19,7 @@
 #include "jaspdoublevalidator.h"
 #include <math.h>
 
+
 QValidator::State JASPDoubleValidator::validate(QString& s, int& pos) const
 {
 	if (s.isEmpty() || (s.startsWith("-") && s.length() == 1 && bottom() < 0))

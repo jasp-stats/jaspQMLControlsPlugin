@@ -18,6 +18,7 @@
 
 import QtQuick
 import QtQuick.Layouts
+import JASP.Controls
 
 
 ColumnLayout

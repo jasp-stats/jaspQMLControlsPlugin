@@ -16,6 +16,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 import QtQuick
+import JASP.Controls
 
 Rectangle
 {

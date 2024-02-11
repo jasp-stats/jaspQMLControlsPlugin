@@ -71,12 +71,12 @@ JASPControl::JASPControl(QQuickItem *parent) : QQuickItem(parent)
 
 JASPControl::~JASPControl()
 {
-		//first we disconnect the children because reconnectWithYourChildren connected them to the parent
-		//These might get triggered during the destructor of QQuickItem and then crash jasp...
-		for (JASPControl* child : getChildJASPControls(_childControlsArea))
-			child->disconnect();
+	//first we disconnect the children because reconnectWithYourChildren connected them to the parent
+	//These might get triggered during the destructor of QQuickItem and then crash jasp...
+	for (JASPControl* child : getChildJASPControls(_childControlsArea))
+		child->disconnect();
 
-		disconnect();
+	disconnect();
 }
 
 void JASPControl::setFocusOnTab(bool focus)
@@ -157,7 +157,7 @@ void JASPControl::_resetBindingValue()
 	// If a control gets a value from a JASP file, this value may differ from its default value sets by a QML binding:
 	// this QML binding may then change the value during the initialization of the form.
 	// In this case, restore the original value.
-	if (isBound() && hasUserInteractiveValue() && initializedFromJaspFile() && form() && !form()->initialized())
+	if (isBound() && hasUserInteractiveValue() && initializedWithValue() && form() && !form()->initialized())
 		boundControl()->resetBoundValue();
 }
 
@@ -742,16 +742,6 @@ QString JASPControl::humanFriendlyLabel() const
 
 	return label;
 
-		}
-
-void JASPControl::setInitialized(bool byFile)
-{
-	if (!_initialized)
-	{
-		_initialized = true;
-		_initializedFromJaspFile = byFile;
-		emit initializedChanged();
-	}
 }
 
 QVector<JASPControl::ParentKey> JASPControl::getParentKeys()
@@ -798,4 +788,64 @@ void JASPControl::_notifyFormOfActiveFocus()
 	//For this reason we check if the focus reason is the result of user input or the focus scope system.
 	if (_form && _focusReason >= Qt::MouseFocusReason && _focusReason <= Qt::OtherFocusReason)
 		_form->setActiveJASPControl(this, hasActiveFocus());
+}
+
+void JASPControl::_addExplicitDependency(const QVariant& depends)
+{
+	if (!depends.isValid() || depends.isNull()) return;
+
+	JASPControl* control = depends.value<JASPControl*>();
+	if (control)
+		_depends.insert(control);
+	else if (depends.canConvert<QString>())
+		_depends.insert(form()->getControl(depends.toString()));
+	else if (depends.canConvert<QVariantList>())
+	{
+		QVariantList varDeps = depends.toList();
+		for (const QVariant& varDep : varDeps)
+			_addExplicitDependency(varDep);
+	}
+}
+
+void JASPControl::addExplicitDependency()
+{
+	_addExplicitDependency(_explicitDepends);
+}
+
+bool JASPControl::dependingControlsAreInitialized()
+{
+	bool dependenciesAreInitialized = true;
+
+	for (JASPControl* c : _depends)
+	{
+		if (!c->initialized())
+			dependenciesAreInitialized = false;
+	}
+	return dependenciesAreInitialized;
+}
+
+void JASPControl::setInitialized(const Json::Value &value)
+{
+	if (dependingControlsAreInitialized())
+		_setInitialized(value);
+	else
+	{
+		for (JASPControl* c : _depends)
+			if (!c->initialized())
+				connect(c, &JASPControl::initializedChanged, this, [this, value]() { if (dependingControlsAreInitialized()) _setInitialized(value); });
+	}
+}
+
+void JASPControl::_setInitialized(const Json::Value &value)
+{
+	BoundControl* bControl = boundControl();
+	if (bControl)
+	{
+		bControl->setDefaultBoundValue(bControl->createJson());
+		bControl->bindTo(value == Json::nullValue ? bControl->createJson() : value);
+	}
+
+	_initialized = true;
+	_initializedWithValue = (value != Json::nullValue);
+	emit initializedChanged();
 }

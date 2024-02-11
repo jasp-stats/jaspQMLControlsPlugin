@@ -37,8 +37,6 @@
 #include <QQmlProperty>
 #include "log.h"
 
-using namespace JASP;
-
 VariablesListBase::VariablesListBase(QQuickItem* parent)
 	: JASPListControl(parent)
 {
@@ -50,11 +48,11 @@ void VariablesListBase::setUp()
 {
 	JASPListControl::setUp();
 
-	if (listViewType() == ListViewType::RepeatedMeasures)
+	if (listViewType() == JASP::ListViewType::RepeatedMeasures)
 	{
 		for (SourceItem* sourceItem : _sourceItems)
 		{
-			ListModelFactorLevels* factorsModel = dynamic_cast<ListModelFactorLevels*>(sourceItem->listModel());
+			ListModelFactorLevels* factorsModel = dynamic_cast<ListModelFactorLevels*>(sourceItem->sourceListModel());
 			if (!factorsModel)
 				addControlError(tr("Source model of %1 must be from a Factor List").arg(name()));
 			else
@@ -81,7 +79,7 @@ void VariablesListBase::setUp()
 	connect(DesktopCommunicator::singleton(), &DesktopCommunicator::currentJaspThemeChanged, this, &VariablesListBase::_setAllowedVariables);
 
 	_draggableModel->setItemType(property("itemType").toString());
-	DropMode dropMode = DropMode(property("dropMode").toInt());
+	JASP::DropMode dropMode = JASP::DropMode(property("dropMode").toInt());
 	_draggableModel->setDropMode(dropMode);
 	
 	//We use macros here because the signals come from QML
@@ -91,6 +89,22 @@ void VariablesListBase::setUp()
 	connect(this,	&VariablesListBase::suggestedColumnsChanged,					this, &VariablesListBase::_setAllowedVariables);
 }
 
+void VariablesListBase::_setInitialized(const Json::Value &value)
+{
+	ListModelAvailableInterface* availableModel = qobject_cast<ListModelAvailableInterface*>(_draggableModel);
+	if (availableModel)
+		availableModel->resetTermsFromSources(false);
+	else if (value == Json::nullValue && addAvailableVariablesToAssigned())
+	{
+		// If addAvailableVariablesToAssigned is true and this is initialized without value,
+		// maybe the availableAssignedList has some default values that must be assigned to this VariablesList
+		ListModelAssignedInterface* assignedModel = qobject_cast<ListModelAssignedInterface*>(_draggableModel);
+		if (assignedModel)
+			assignedModel->initTerms(assignedModel->availableModel()->terms());
+	}
+
+	JASPListControl::_setInitialized(value);
+}
 
 
 ListModel *VariablesListBase::model() const
@@ -102,18 +116,18 @@ void VariablesListBase::setUpModel()
 {
 	switch (_listViewType)
 	{
-	case ListViewType::AvailableVariables:
+	case JASP::ListViewType::AvailableVariables:
 		_isBound		= false;
 		_draggableModel = new ListModelTermsAvailable(this);
 		break;
 
-	case ListViewType::AvailableInteraction:
+	case JASP::ListViewType::AvailableInteraction:
 		_isBound				= false;
 		_termsAreInteractions	= true;
 		_draggableModel			= new ListModelInteractionAvailable(this);
 		break;
 
-	case ListViewType::Layers:
+	case JASP::ListViewType::Layers:
 	{
 		auto *	layersModel		= new ListModelLayersAssigned(this);
 				_boundControl	= new BoundControlLayers(layersModel);
@@ -121,7 +135,7 @@ void VariablesListBase::setUpModel()
 		break;
 	}
 		
-	case ListViewType::RepeatedMeasures:
+	case JASP::ListViewType::RepeatedMeasures:
 	{
 		 auto * measuresCellsModel	= new ListModelMeasuresCellsAssigned(this);
 				_boundControl		= new BoundControlMeasuresCells(measuresCellsModel);
@@ -129,7 +143,7 @@ void VariablesListBase::setUpModel()
 		break;
 	}
 		
-	case ListViewType::AssignedVariables:
+	case JASP::ListViewType::AssignedVariables:
 	{
 		ListModelAssignedInterface* termsModel = nullptr;
 
@@ -148,7 +162,7 @@ void VariablesListBase::setUpModel()
 		break;
 	}
 		
-	case ListViewType::Interaction:
+	case JASP::ListViewType::Interaction:
 	{
 		_termsAreInteractions = true;
 
@@ -366,7 +380,6 @@ void VariablesListBase::_setAllowedVariables()
 			implicitAllowedTypes.insert("nominalText");
 			implicitAllowedTypes.insert("ordinal");
 		}
-		setAllowedColumns(implicitAllowedTypes.values());
 	}
 
 	_variableTypesAllowed.clear();
@@ -376,7 +389,7 @@ void VariablesListBase::_setAllowedVariables()
 	// The suggectedColumnsIcons indicates which columns are allowed in the VariableList view.
 	// It shows per default the suggested columns list, but if empty, it shows the alloaed columns list.
 	QStringList iconTypeList,
-				columnTypes = suggestedColumns().isEmpty() ?  allowedColumns() : suggestedColumns();
+				columnTypes = allowedColumns().isEmpty() ? suggestedColumns() : allowedColumns();
 	for (const QString& columnTypeStr : columnTypes)
 	{
 		columnType type = columnTypeFromString(fq(columnTypeStr), columnType::unknown);

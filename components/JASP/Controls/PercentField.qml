@@ -19,7 +19,6 @@
 import QtQuick
 import JASP.Controls
 
-
 DoubleField
 {
 	id:					percentField

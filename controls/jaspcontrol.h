@@ -4,20 +4,19 @@
 #include <QQuickItem>
 #include <QPropertyAnimation>
 
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "columntype.h"
 
 class AnalysisForm;
 class JASPListControl;
 class BoundControl;
-class ComputedColumn;
 
 namespace JASP
 {
 	Q_NAMESPACE
+
 	// Be careful not to reuse a name in a enum type: in QML, they are mixed up with a 'JASP' prefix: JASP.DropNone or JASP.None
 	enum class Inclusive		{ None				= 0,															MinMax, MinOnly, MaxOnly };
-
 	enum class DropMode			{ DropNone			= static_cast<int>(Inclusive::MaxOnly)					+ 1,	DropInsert, DropReplace };
 	enum class ListViewType		{ AssignedVariables = static_cast<int>(DropMode::DropReplace)				+ 1,	Interaction, AvailableVariables, RepeatedMeasures, Layers, AvailableInteraction };
 	enum class CombinationType	{ NoCombination		= static_cast<int>(ListViewType::AvailableInteraction)	+ 1,	CombinationCross, CombinationInteraction, Combination2Way, Combination3Way, Combination4Way, Combination5Way };
@@ -33,6 +32,7 @@ namespace JASP
 	Q_ENUM_NS(ModelType)
 	Q_ENUM_NS(ItemType)
 }
+
 ///
 /// Basic class for all our qml controls
 /// Contains all the properties that *must* be there for the QML components defined under Desktop/components/Controls and their bases in Desktop/widgets to function
@@ -71,6 +71,7 @@ class JASPControl : public QQuickItem
 	Q_PROPERTY( bool								hovered					READ hovered												NOTIFY hoveredChanged				)
 	Q_PROPERTY( int									alignment				READ alignment				WRITE setAlignment													)
 	Q_PROPERTY( Qt::FocusReason						focusReason				READ getFocusReason																				)
+	Q_PROPERTY( QVariant							depends					READ explicitDepends		WRITE setExplicitDepends		NOTIFY explicitDependsChanged		)
 
 protected:
 	typedef std::set<JASPControl*>			Set;
@@ -109,11 +110,6 @@ public:
 		, VariablesForm
 	};
 
-	enum class MyType {
-		A,B
-	};
-	Q_ENUM(MyType)
-
 	Q_ENUM(ControlType)
 
 	JASPControl(QQuickItem *parent = nullptr);
@@ -131,7 +127,7 @@ public:
 	bool				indent()					const	{ return _indent;					}
 	bool				isDependency()				const	{ return _isDependency;				}
 	bool				initialized()				const	{ return _initialized;				}
-	bool				initializedFromJaspFile()	const	{ return _initializedFromJaspFile;	}
+	bool				initializedWithValue()		const	{ return _initializedWithValue;		}
 	bool				shouldShowFocus()			const	{ return _shouldShowFocus;			}
 	bool				shouldStealHover()			const	{ return _shouldStealHover;			}
 	bool				debug()						const	{ return _debug;					}
@@ -159,9 +155,9 @@ public:
 	int					alignment()					const	{ return _alignment;				}
 	Qt::FocusReason		getFocusReason()			const	{ return _focusReason;				}
 	bool				dependsOnDynamicComponents() const	{ return _dependsOnDynamicComponents; }
+	const QVariant&		explicitDepends()			const	{ return _explicitDepends;			}
 
 	QString				humanFriendlyLabel()		const;
-	void				setInitialized(bool byFile = false);
 
 	QVector<JASPControl::ParentKey>	getParentKeys();
 
@@ -169,6 +165,7 @@ public:
 	static QList<JASPControl*>		getChildJASPControls(const QQuickItem* item);
 
 	virtual void					setUp()										{}
+	void							setInitialized(const Json::Value& value = Json::nullValue);
 	virtual void					cleanUp()									{ disconnect(); }
 	virtual BoundControl		*	boundControl();
 	virtual bool					encodeValue()						const	{ return false; }
@@ -181,9 +178,7 @@ public:
 	virtual void					rScriptDoneHandler(const QString& result);
 
 	virtual QString					friendlyName() const;
-
-protected:
-	Set								_depends; //So Joris changed this to a set instead of a vector because that is what it seemed to be, the order isn't important right?
+	void							addExplicitDependency();
 
 public slots:
 	void	setControlType(			ControlType			controlType)		{ _controlType = controlType; }
@@ -219,6 +214,7 @@ public slots:
 	GENERIC_SET_FUNCTION(ShouldStealHover		, _shouldStealHover		, shouldStealHoverChanged		, bool			)
 	GENERIC_SET_FUNCTION(Background				, _background			, backgroundChanged				, QQuickItem*	)
 	GENERIC_SET_FUNCTION(DependencyMustContain	, _dependencyMustContain, dependencyMustContainChanged	, QStringList	)
+	GENERIC_SET_FUNCTION(ExplicitDepends		, _explicitDepends		, explicitDependsChanged		, QVariant		)
 
 private slots:
 	void	_setFocusBorder();
@@ -232,33 +228,35 @@ private slots:
 	void	_checkControlName();
 
 signals:
-	void setOptionBlockSignal(	bool blockSignal);
-	void nameChanged();
-	void isBoundChanged();
-	void indentChanged();
-	void isDependencyChanged();
-	void initializedChanged();
-	void shouldShowFocusChanged();
-	void shouldStealHoverChanged();
-	void debugChanged();
-	void parentDebugChanged();
-	void hasErrorChanged();
-	void hasWarningChanged();
-	void focusOnTabChanged();
-	void parentListViewChanged();
-	void innerControlChanged();
-	void backgroundChanged();
-	void focusIndicatorChanged();
-	void infoChanged();
-	void toolTipChanged();
-	void titleChanged();
-	void helpMDChanged();
-	void dependencyMustContainChanged();
-	void preferredHeightChanged();
-	void preferredWidthChanged();
-	void hoveredChanged();
-	void controlTypeChanged();			// Not used, defined only to suppress warning in QML
-	void boundValueChanged(JASPControl* control);
+	void	setOptionBlockSignal(	bool blockSignal);
+	void	nameChanged();
+	void	isBoundChanged();
+	void	indentChanged();
+	void	isDependencyChanged();
+	void	initializedChanged();
+	void	shouldShowFocusChanged();
+	void	shouldStealHoverChanged();
+	void	debugChanged();
+	void	parentDebugChanged();
+	void	hasErrorChanged();
+	void	hasWarningChanged();
+	void	focusOnTabChanged();
+	void	parentListViewChanged();
+	void	innerControlChanged();
+	void	backgroundChanged();
+	void	focusIndicatorChanged();
+	void	infoChanged();
+	void	toolTipChanged();
+	void	titleChanged();
+	void	helpMDChanged();
+	void	dependencyMustContainChanged();
+	void	preferredHeightChanged();
+	void	preferredWidthChanged();
+	void	hoveredChanged();
+	void	controlTypeChanged();			// Not used, defined only to suppress warning in QML
+	void	boundValueChanged(JASPControl* control);
+	void	usedVariablesChanged();
+	void	explicitDependsChanged();
 
 	void				requestColumnCreation(std::string columnName, columnType columnType);
 	void				requestComputedColumnCreation(std::string columnName);
@@ -272,8 +270,12 @@ protected:
 	void				focusInEvent(QFocusEvent* event) override;
 	bool				eventFilter(QObject *watched, QEvent *event) override;
 	bool				checkOptionName(const QString& name);
+	void				_addExplicitDependency(const QVariant& depends);
+	bool				dependingControlsAreInitialized();
+	virtual void		_setInitialized(const Json::Value &value);
 
 protected:
+	Set						_depends;
 	ControlType				_controlType;
 	AnalysisForm*			_form						= nullptr;
 	QString					_name,
@@ -284,7 +286,7 @@ protected:
 	bool					_isBound					= true,
 							_indent						= false,
 							_initialized				= false,
-							_initializedFromJaspFile	= false,
+							_initializedWithValue	= false,
 							_debug						= false,
 							_parentDebug				= false,
 							_hasError					= false,
@@ -315,6 +317,7 @@ protected:
 	int						_alignment					= Qt::AlignTop | Qt::AlignLeft;
 	Qt::FocusReason			_focusReason				= Qt::FocusReason::NoFocusReason;
 	bool					_dependsOnDynamicComponents = false;
+	QVariant				_explicitDepends;
 
 	static QMap<QQmlEngine*, QQmlComponent*>		_mouseAreaComponentMap;
 	static QByteArray								_mouseAreaDef;

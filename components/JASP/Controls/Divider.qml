@@ -20,8 +20,6 @@
 import QtQuick
 import QtQuick.Layouts
 
-
-
 Item
 {
 	property alias label: titleText.text

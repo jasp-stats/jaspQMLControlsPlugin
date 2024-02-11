@@ -41,12 +41,12 @@ void TableViewBase::setUpModel()
 {
 	switch (modelType())
 	{
-	case ModelType::MultinomialChi2Model	: _tableModel = new ListModelMultinomialChi2Test(	this );	break;
-	case ModelType::JAGSDataInputModel		: _tableModel = new ListModelJAGSDataInput(			this );	break;
-	case ModelType::CustomContrasts			: _tableModel = new ListModelCustomContrasts(		this );	break;
-	case ModelType::FilteredDataEntryModel	: _tableModel = new ListModelFilteredDataEntry(		this );	break;
-	case ModelType::GridInput				: _tableModel = new ListModelGridInput(				this ); break;
-	case ModelType::Simple					: _tableModel = new ListModelTableViewBase(			this );	break;
+	case JASP::ModelType::MultinomialChi2Model		: _tableModel = new ListModelMultinomialChi2Test(	this );	break;
+	case JASP::ModelType::JAGSDataInputModel		: _tableModel = new ListModelJAGSDataInput(			this );	break;
+	case JASP::ModelType::CustomContrasts			: _tableModel = new ListModelCustomContrasts(		this );	break;
+	case JASP::ModelType::FilteredDataEntryModel	: _tableModel = new ListModelFilteredDataEntry(		this );	break;
+	case JASP::ModelType::GridInput					: _tableModel = new ListModelGridInput(				this ); break;
+	case JASP::ModelType::Simple					: _tableModel = new ListModelTableViewBase(			this );	break;
 	}
 
 	JASPListControl::setUpModel();
@@ -60,18 +60,18 @@ void TableViewBase::setUp()
 {
 	switch (modelType())
 	{
-	case ModelType::CustomContrasts			: _boundControl = new BoundControlContrastsTableView(this); break;
-	case ModelType::FilteredDataEntryModel	: _boundControl = new BoundControlFilteredTableView(this);	break;
-	case ModelType::GridInput				: _boundControl = new BoundControlGridTableView(this);		break;
-	case ModelType::MultinomialChi2Model	:
-	case ModelType::JAGSDataInputModel		:
-	case ModelType::Simple					:
-	default									: _boundControl = new BoundControlTableView(this);
+	case JASP::ModelType::CustomContrasts			: _boundControl = new BoundControlContrastsTableView(this); break;
+	case JASP::ModelType::FilteredDataEntryModel	: _boundControl = new BoundControlFilteredTableView(this);	break;
+	case JASP::ModelType::GridInput					: _boundControl = new BoundControlGridTableView(this);		break;
+	case JASP::ModelType::MultinomialChi2Model		:
+	case JASP::ModelType::JAGSDataInputModel		:
+	case JASP::ModelType::Simple					:
+	default											: _boundControl = new BoundControlTableView(this);
 	}
 
 	JASPListControl::setUp();
 
-	if (modelType() == ModelType::GridInput && hasNativeSource()) setUpdateSource(true);
+	if (modelType() == JASP::ModelType::GridInput && hasNativeSource()) setUpdateSource(true);
 
 	setInitialValuesControl();
 	connect(this,	&TableViewBase::initialValuesSourceChanged, this, &TableViewBase::setInitialValuesControl);
@@ -126,7 +126,12 @@ void TableViewBase::removeRow(int row)
 void TableViewBase::setSize(int rows, int columns)
 {
 	if (_tableModel)
+	{
 		_tableModel->setSize(rows, columns);
+	
+		if(_tableModel->areColumnNamesVariables())
+			emit usedVariablesChanged(); //Well, they might have
+	}
 }
 
 void TableViewBase::reset()

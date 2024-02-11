@@ -19,7 +19,7 @@
 #include "analysisform.h"
 #include "knownissues.h"
 #include "boundcontrols/boundcontrol.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "models/listmodeltermsavailable.h"
 #include "controls/jasplistcontrol.h"
 #include "controls/expanderbuttonbase.h"
@@ -33,7 +33,6 @@
 #include <QTimer>
 #include "controls/variableslistbase.h"
 #include "preferencesmodelbase.h"
-#include "simpleDataSetModel.h"
 
 using namespace std;
 
@@ -47,12 +46,12 @@ AnalysisForm::AnalysisForm(QQuickItem *parent) : QQuickItem(parent)
 	// _startRSyntaxTimer is used to call setRSyntaxText only once in a event loop.
 	connect(this,									&AnalysisForm::infoChanged,					this, &AnalysisForm::helpMDChanged			);
 	connect(this,									&AnalysisForm::formCompletedSignal,			this, &AnalysisForm::formCompletedHandler,	Qt::QueuedConnection);
-	connect(this,									&AnalysisForm::analysisInitialized,			this, &AnalysisForm::knownIssuesUpdated,	Qt::QueuedConnection);
+	connect(this,									&AnalysisForm::analysisChanged,				this, &AnalysisForm::knownIssuesUpdated,	Qt::QueuedConnection);
 	connect(KnownIssues::issues(),					&KnownIssues::knownIssuesUpdated,			this, &AnalysisForm::knownIssuesUpdated,	Qt::QueuedConnection);
 	connect(this,									&AnalysisForm::showAllROptionsChanged,		this, &AnalysisForm::setRSyntaxText,		Qt::QueuedConnection);
 	connect(PreferencesModelBase::preferences(),	&PreferencesModelBase::showRSyntaxChanged,	this, &AnalysisForm::setRSyntaxText,		Qt::QueuedConnection);
 	connect(PreferencesModelBase::preferences(),	&PreferencesModelBase::showAllROptionsChanged,	this, &AnalysisForm::showAllROptionsChanged, Qt::QueuedConnection	);
-	connect(this,									&AnalysisForm::analysisInitialized,			this, &AnalysisForm::setRSyntaxText,		Qt::QueuedConnection);
+	connect(this,									&AnalysisForm::analysisChanged,				this, &AnalysisForm::setRSyntaxText,		Qt::QueuedConnection);
 }
 
 AnalysisForm::~AnalysisForm()
@@ -159,6 +158,8 @@ void AnalysisForm::addControl(JASPControl *control)
 	if (_analysis && control->isBound())
 	{
 		connect(control, &JASPControl::requestColumnCreation, _analysis, &AnalysisBase::requestColumnCreationHandler);
+		
+		connect(control, &JASPControl::usedVariablesChanged, _analysis, &AnalysisBase::onUsedVariablesChanged);
 	}
 
 	if (control->controlType() == JASPControl::ControlType::Expander)
@@ -182,15 +183,14 @@ void AnalysisForm::addControl(JASPControl *control)
 		control->setUp();
 		control->setInitialized();
 	}
-
 }
 
 void AnalysisForm::addColumnControl(JASPControl* control, bool isComputed)
 {
 	if (isComputed)
 	{
-		connect(control, &JASPControl::requestComputedColumnCreation, _analysis, &AnalysisBase::requestComputedColumnCreationHandler);
-		connect(control, &JASPControl::requestComputedColumnDestruction, _analysis, &AnalysisBase::requestComputedColumnDestructionHandler);
+		connect(control, &JASPControl::requestComputedColumnCreation,		_analysis, &AnalysisBase::requestComputedColumnCreationHandler);
+		connect(control, &JASPControl::requestComputedColumnDestruction,	_analysis, &AnalysisBase::requestComputedColumnDestructionHandler);
 	}
 	else
 		connect(control, &JASPControl::requestColumnCreation, _analysis, &AnalysisBase::requestColumnCreationHandler);
@@ -215,6 +215,7 @@ void AnalysisForm::sortControls(QList<JASPControl*>& controls)
 {
 	for (JASPControl* control : controls)
 	{
+		control->addExplicitDependency();
 		std::vector<JASPControl*> depends(control->depends().begin(), control->depends().end());
 
 		// By adding at the end of the vector new dependencies, this makes sure that these dependencies of these new dependencies are
@@ -251,31 +252,16 @@ void AnalysisForm::setHasVolatileNotes(bool hasVolatileNotes)
 	emit hasVolatileNotesChanged();
 }
 
-
-QString AnalysisForm::parseOptions(const QString &options, const QString& data)
+bool AnalysisForm::parseOptions(Json::Value &options)
 {
-	Json::Reader parser;
-	Json::Value jsonOptions(Json::objectValue), jsonData(Json::arrayValue);
-	if (!options.isEmpty()) parser.parse(fq(options), jsonOptions);
-	if (!data.isEmpty()) parser.parse(fq(data), jsonData);
+	if (_rSyntax->parseRSyntaxOptions(options))
+	{
+		bindTo(options);
+		options = _analysis->boundValues();
+		return true;
+	}
 
-	SimpleDataSetModel::singleton()->setData(jsonData);
-
-	if(!_analysis)
-		setAnalysis(new AnalysisBase());
-	else
-		_setUpControls();
-
-	_rSyntax->parseRSyntaxOptions(jsonOptions);
-
-	if (!hasError())
-		bindTo(jsonOptions);
-
-	Json::Value result(Json::objectValue);
-	result["error"] = getError().toStdString();
-	result["options"] = boundValues();
-
-	return tq(result.toStyledString());
+	return false;
 }
 
 void AnalysisForm::_setUp()
@@ -289,8 +275,6 @@ void AnalysisForm::_setUp()
 
 	for (JASPControl* control : controls)
 	{
-		BoundControl* boundControl = control->boundControl();
-		if (boundControl) boundControl->setDefaultBoundValue(boundControl->createJson()); // The default value is known only when all controls are setup
 		_dependsOrderedCtrls.push_back(control);
 		connect(control, &JASPControl::helpMDChanged, this, &AnalysisForm::helpMDChanged);
 	}
@@ -371,38 +355,17 @@ void AnalysisForm::_addLoadingError(QStringList wrongJson)
 
 void AnalysisForm::bindTo(const Json::Value & defaultOptions)
 {
-	QVector<ListModelAvailableInterface*> availableModelsToBeReset;
-
 	std::set<std::string> controlsJsonWrong;
 	
 	for (JASPControl* control : _dependsOrderedCtrls)
 	{
-		bool hasOption = false;
 		BoundControl* boundControl = control->boundControl();
-		JASPListControl* listControl = dynamic_cast<JASPListControl *>(control);
-
-		if (listControl && listControl->hasSource())
-		{
-			ListModelAvailableInterface* availableModel = qobject_cast<ListModelAvailableInterface*>(listControl->model());
-			// The availableList control are not bound with options, but they have to be updated from their sources when the form is initialized.
-			// The availableList cannot signal their assigned models now because they are not yet bound (the controls are ordered by dependency)
-			// When the options come from a JASP file, an assigned model needs sometimes the available model (eg. to determine the kind of terms they have).
-			// So in this case resetTermsFromSourceModels has to be called now but with updateAssigned argument set to false.
-			// When the options come from default options (from source models), the availableList needs sometimes to signal their assigned models (e.g. when addAvailableVariablesToAssigned if true).
-			// As their assigned models are not yet bound, resetTermsFromSourceModels (with updateAssigned argument set to true) must be called afterwards.
-			if (availableModel)
-			{
-				if (defaultOptions.size() != 0 || _analysis->isDuplicate())
-					availableModel->resetTermsFromSources(false);
-				else
-					availableModelsToBeReset.push_back(availableModel);
-			}
-		}
-
+		Json::Value optionValue = Json::nullValue;
 		if (boundControl)
 		{
 			std::string name = control->name().toStdString();
-			Json::Value optionValue =  defaultOptions.size() != 0 ? defaultOptions[name] : Json::nullValue;
+			if (defaultOptions.isMember(name))
+				optionValue = defaultOptions[name];
 
 			if (optionValue != Json::nullValue && !boundControl->isJsonValid(optionValue))
 			{
@@ -410,20 +373,10 @@ void AnalysisForm::bindTo(const Json::Value & defaultOptions)
 				control->setHasWarning(true);
 				controlsJsonWrong.insert(name);
 			}
-
-			if (optionValue == Json::nullValue)
-				optionValue = boundControl->createJson();
-			else
-				hasOption = true;
-
-			boundControl->bindTo(optionValue);
 		}
 
-		control->setInitialized(hasOption);
+		control->setInitialized(optionValue);
 	}
-
-	for (ListModelAvailableInterface* availableModel : availableModelsToBeReset)
-		availableModel->resetTermsFromSources(true);
 
 	_addLoadingError(tql(controlsJsonWrong));
 
@@ -481,7 +434,7 @@ void AnalysisForm::addControlError(JASPControl* control, QString message, bool t
 			// Cannot instantiate _controlErrorMessageComponent in the constructor (it crashes), and it might be too late in the formCompletedHandler since error can be generated earlier
 			// So create it when it is needed for the first time.
 			if (!_controlErrorMessageComponent)
-				_controlErrorMessageComponent = new QQmlComponent(qmlEngine(this), "qrc:///JASP/Controls/components/JASP/Controls/ControlErrorMessage.qml");
+				_controlErrorMessageComponent = new QQmlComponent(qmlEngine(this), "qrc:///components/JASP/Controls/ControlErrorMessage.qml");
 
 			controlErrorMessageItem = qobject_cast<QQuickItem*>(_controlErrorMessageComponent->create(QQmlEngine::contextForObject(this)));
 			if (!controlErrorMessageItem)
@@ -506,7 +459,7 @@ void AnalysisForm::addControlError(JASPControl* control, QString message, bool t
 		controlErrorMessageItem->setProperty("control", QVariant::fromValue(control));
 		controlErrorMessageItem->setProperty("warning", warning);
 		controlErrorMessageItem->setParentItem(container);
-		QMetaObject::invokeMethod(controlErrorMessageItem, "showMessage", Qt::DirectConnection, Q_ARG(QVariant, message), Q_ARG(QVariant, temporary));
+		QMetaObject::invokeMethod(controlErrorMessageItem, "showMessage", Qt::QueuedConnection, Q_ARG(QVariant, message), Q_ARG(QVariant, temporary));
 	}
 
 	if (warning)	control->setHasWarning(true);
@@ -515,9 +468,6 @@ void AnalysisForm::addControlError(JASPControl* control, QString message, bool t
 
 bool AnalysisForm::hasError()
 {
-	if (_formErrors.count() > 0)
-		return true;
-
 	// _controls have only controls created when the form is created, not the ones created dynamically afterwards
 	// So here we use a workaround: check whether one errorMessage item in _controlErrorMessageCache has a control (do not use visible since it becomes visible too late).
 	// Controls handling inside a form must indeed be done in anther way!
@@ -531,7 +481,7 @@ bool AnalysisForm::hasError()
 
 QString AnalysisForm::getError()
 {
-	QString message = _formErrors.join(", ");
+	QString message;
 
 	for (QQuickItem* item : _controlErrorMessageCache)
 		if (item->property("control").value<JASPControl*>() != nullptr)
@@ -635,7 +585,11 @@ void AnalysisForm::setAnalysisUp()
 
 	_initialized = true;
 
-	emit analysisInitialized();
+	// Don't bind boundValuesChanged before it is initialized: each setup of all controls will generate a boundValuesChanged
+	connect(_analysis,					&AnalysisBase::boundValuesChanged,		this,			&AnalysisForm::setRSyntaxText,				Qt::QueuedConnection	);
+
+	setRSyntaxText();
+	emit analysisChanged();
 }
 
 void AnalysisForm::knownIssuesUpdated()
@@ -764,9 +718,9 @@ bool AnalysisForm::isFormulaName(const QString& name) const
 	return _rSyntax->getFormula(name) != nullptr;
 }
 
-QString AnalysisForm::generateRSyntax() const
+QString AnalysisForm::generateRSyntax(bool useHtml) const
 {
-	return _rSyntax->generateSyntax(showAllROptions());
+	return _rSyntax->generateSyntax(!useHtml && showAllROptions(), useHtml);
 }
 
 QVariantList AnalysisForm::optionNameConversion() const
@@ -1001,12 +955,10 @@ void AnalysisForm::setRSyntaxText()
 		return;
 
 	QString text = generateRSyntax();
-	Log::log() << "setRSyntaxText: " << text << std::endl;
 
 	if (text != _rSyntaxText)
 	{
 		_rSyntaxText = text;
-		Log::log() << "EMIT rSyntaxTextChanged" << std::endl;
 		emit rSyntaxTextChanged();
 	}
 }

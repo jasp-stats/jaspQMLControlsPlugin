@@ -17,7 +17,7 @@
 //
 
 #include "term.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include <sstream>
 
 const char * Term::separator =

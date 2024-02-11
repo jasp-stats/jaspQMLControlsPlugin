@@ -16,7 +16,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "formula.h"
+#include "formulabase.h"
 #include "formulasource.h"
 #include "rsyntax.h"
 #include "controls/sourceitem.h"
@@ -24,27 +24,27 @@
 #include "log.h"
 #include "formulaparser.h"
 
-Formula::Formula(QQuickItem *parent) : QQuickItem(parent)
+FormulaBase::FormulaBase(QQuickItem *parent) : QQuickItem(parent)
 {
 	setVisible(false);
 }
 
-void Formula::setUp()
+void FormulaBase::setUp()
 {
 	_leftFormulaSources  = FormulaSource::makeFormulaSources(this, _lhs);
 	_rightFormulaSources = FormulaSource::makeFormulaSources(this, _rhs);
 
-	connect(this, &Formula::lhsChanged, this, [this]() { _leftFormulaSources  = FormulaSource::makeFormulaSources(this, _lhs); emit somethingChanged();} );
-	connect(this, &Formula::rhsChanged, this, [this]() { _rightFormulaSources = FormulaSource::makeFormulaSources(this, _rhs); emit somethingChanged();} );
+	connect(this, &FormulaBase::lhsChanged, this, [this]() { _leftFormulaSources  = FormulaSource::makeFormulaSources(this, _lhs); emit somethingChanged();} );
+	connect(this, &FormulaBase::rhsChanged, this, [this]() { _rightFormulaSources = FormulaSource::makeFormulaSources(this, _rhs); emit somethingChanged();} );
 }
 
 // Generate the R Formula
-QString Formula::toString(bool &isNull) const
+QString FormulaBase::toString(const QString& newLine, const QString& indent, bool &isNull) const
 {
 	if (!_rSyntax)
 		return "";
 
-	QString result = _rSyntax->FunctionOptionIndent + _name + " = ";
+	QString result = indent + _name + " = ";
 	bool isEmpty = true;
 
 	for (FormulaSource* formulaSource : _rightFormulaSources)
@@ -91,9 +91,9 @@ QString Formula::toString(bool &isNull) const
 		for (const QString& key : extraOptions.keys())
 		{
 			if (!result.isEmpty())	
-				result += ",\n";
+				result += "," + newLine;
 
-			result += _rSyntax->FunctionOptionIndent + _rSyntax->getRSyntaxFromControlName(key) + " = " + extraOptions[key];
+			result += indent + _rSyntax->getRSyntaxFromControlName(key) + " = " + extraOptions[key];
 		}
 	}
 
@@ -111,9 +111,9 @@ QString Formula::toString(bool &isNull) const
 			continue;
 
 		if (!result.isEmpty())	
-			result += ",\n";
+			result += "," + newLine;
 
-		result += _rSyntax->FunctionOptionIndent + _rSyntax->getRSyntaxFromControlName(optionToSpecify) + " = ";
+		result += indent + _rSyntax->getRSyntaxFromControlName(optionToSpecify) + " = ";
 
 		if (elements.length() == 0)			result += "\"\"";
 		else if (elements.length() == 1)	result += "\"" + elements[0] + "\"";
@@ -136,7 +136,7 @@ QString Formula::toString(bool &isNull) const
 	return result;
 }
 
-bool Formula::parseRSyntaxOptions(Json::Value &options) const
+bool FormulaBase::parseRSyntaxOptions(Json::Value &options) const
 {
 	const Json::Value& formulaJson = options[fq(_name)];
 
@@ -164,12 +164,12 @@ bool Formula::parseRSyntaxOptions(Json::Value &options) const
 	return _parseFormulaSources(_leftFormulaSources, leftParsedTerms, options) && _parseFormulaSources(_rightFormulaSources, rightParsedTerms, options);
 }
 
-AnalysisForm *Formula::form() const
+AnalysisForm *FormulaBase::form() const
 {
 	return _rSyntax ? _rSyntax->form() : nullptr;
 }
 
-QStringList Formula::modelSources() const
+QStringList FormulaBase::modelSources() const
 {
 	QStringList result = sourcesThatMustBeSpecified();
 
@@ -179,12 +179,12 @@ QStringList Formula::modelSources() const
 	return result;
 }
 
-QStringList Formula::sourcesThatMustBeSpecified() const
+QStringList FormulaBase::sourcesThatMustBeSpecified() const
 {
 	return _getSourceList(_userMustSpecify);
 }
 
-QStringList Formula::extraOptions(bool useOptionName, bool onlyFormula) const
+QStringList FormulaBase::extraOptions(bool useOptionName, bool onlyFormula) const
 {
 	QStringList result;
 
@@ -194,7 +194,7 @@ QStringList Formula::extraOptions(bool useOptionName, bool onlyFormula) const
 	return result;
 }
 
-QStringList Formula::_getSourceList(const QVariant &var) const
+QStringList FormulaBase::_getSourceList(const QVariant &var) const
 {
 	QStringList result;
 	for (const QVariant& modelSpec : SourceItem::getListVariant(var))
@@ -220,7 +220,7 @@ QStringList Formula::_getSourceList(const QVariant &var) const
 }
 
 
-bool Formula::_parseFormulaSources(const QVector<FormulaSource*>& formulaSources, FormulaParser::ParsedTerms& parsedTerms, Json::Value& options) const
+bool FormulaBase::_parseFormulaSources(const QVector<FormulaSource*>& formulaSources, FormulaParser::ParsedTerms& parsedTerms, Json::Value& options) const
 {
 	if (parsedTerms.fixedTerms.terms().empty())
 		return true;
@@ -234,7 +234,7 @@ bool Formula::_parseFormulaSources(const QVector<FormulaSource*>& formulaSources
 	return !_rSyntax->hasError();
 }
 
-ListModel *Formula::getModel(const QString &name) const
+ListModel *FormulaBase::getModel(const QString &name) const
 {
 	AnalysisForm	* aform 		= form();
 	ListModel		* model 		= nullptr;
@@ -256,7 +256,7 @@ ListModel *Formula::getModel(const QString &name) const
 	return model;
 }
 
-void Formula::componentComplete()
+void FormulaBase::componentComplete()
 {
 	AnalysisForm* form = qobject_cast<AnalysisForm*>(parent());
 	

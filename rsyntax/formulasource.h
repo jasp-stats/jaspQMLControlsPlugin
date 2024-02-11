@@ -24,7 +24,7 @@
 #include <json/json.h>
 #include "models/listmodel.h"
 
-class Formula;
+class FormulaBase;
 class ListModelAssignedInterface;
 class Terms;
 class ComponentsListBase;
@@ -62,10 +62,10 @@ public:
 		bool isEmpty() const { return name.isEmpty(); }
 	};
 
-	FormulaSource(Formula *formula, const QVariant& var);
+	FormulaSource(FormulaBase *formula, const QVariant& var);
 
 	static const QString			interceptTerm;
-	static QVector<FormulaSource*>	makeFormulaSources(Formula* formula, const QVariant& var);
+	static QVector<FormulaSource*>	makeFormulaSources(FormulaBase* formula, const QVariant& var);
 	static QString					generateInteractionTerms(const Terms& terms);
 
 	const QString&					sourceName()																					const	{ return _sourceName;	}
@@ -91,7 +91,7 @@ protected:
 	ListModel::RowControlsValues	_getTermsFromExtraOptions(const Json::Value& options)											const;
 	bool							_checkIntercept(Terms& terms) const;
 
-	Formula*						_formula			= nullptr;
+	FormulaBase*					_formula			= nullptr;
 	ListModel*						_model				= nullptr;
 	QString							_sourceName;
 	QMap<QString, ExtraOption>		_extraOptions;

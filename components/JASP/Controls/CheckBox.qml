@@ -17,8 +17,8 @@
 //
 
 import QtQuick
-import QtQuick.Controls as QtC
-import QtQuick.Layouts	as L
+import QtQuick.Controls
+import QtQuick.Layouts as L
 import JASP.Controls
 
 
@@ -54,7 +54,7 @@ CheckBoxBase
 	function toggle()	{ control.toggle(); }
 
 
-	QtC.CheckBox
+	CheckBox
 	{
 		id:						control
 		padding:				jaspTheme.jaspControlPadding
@@ -121,7 +121,7 @@ CheckBoxBase
 		}
 	}
 
-	L.GridLayout
+	GridLayout
 	{
 		id:				childControlsArea
 		anchors

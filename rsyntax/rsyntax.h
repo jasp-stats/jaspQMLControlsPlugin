@@ -20,7 +20,7 @@
 #define RSYNTAX_H
 
 #include <QQuickItem>
-#include "formula.h"
+#include "formulabase.h"
 
 class AnalysisForm;
 class JASPControl;
@@ -37,14 +37,14 @@ public:
 	QVariantList					controlNameToRSyntaxMap()						const;
 	bool							setControlNameToRSyntaxMap(const QVariantList& conv);
 
-	QString							generateSyntax(bool showAllOptions = true)		const;
+	QString							generateSyntax(bool showAllOptions = true, bool useHtml = false) const;
 	QString							generateWrapper()								const;
 	QString							getRSyntaxFromControlName(JASPControl* control)	const;
 	QString							getRSyntaxFromControlName(const QString& name)	const;
 	QString							getControlNameFromRSyntax(const QString& name)	const;
 	void							setUp();
-	void							addFormula(Formula* formula);
-	Formula*						getFormula(const QString& name)					const;
+	void							addFormula(FormulaBase* formula);
+	FormulaBase*					getFormula(const QString& name)					const;
 	bool							parseRSyntaxOptions(Json::Value& options)		const;
 	void							addError(const QString& msg)					const;
 	bool							hasError()										const;
@@ -64,7 +64,7 @@ private:
 	bool							_areTermsVariables(ListModel* model, const Terms& terms)	const;
 
 	AnalysisForm*					_form							= nullptr;
-	QVector<Formula*>				_formulas;
+	QVector<FormulaBase*>			_formulas;
 	QMap<QString, QString>			_controlNameToRSyntaxMap;
 	QMap<QString, QString>			_rSyntaxToControlNameMap;
 };

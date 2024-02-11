@@ -16,11 +16,11 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef FORMULA_H
-#define FORMULA_H
+#ifndef FORMULABASE_H
+#define FORMULABASE_H
 
 #include <QQuickItem>
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include "formulaparser.h"
 
 class FormulaSource;
@@ -28,7 +28,7 @@ class RSyntax;
 class AnalysisForm;
 class ListModel;
 
-class Formula : public QQuickItem
+class FormulaBase : public QQuickItem
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -39,7 +39,7 @@ class Formula : public QQuickItem
 	Q_PROPERTY( QString		name				READ name					WRITE setName					NOTIFY nameChanged					)
 
 public:
-	Formula(QQuickItem *parent = nullptr);
+	FormulaBase(QQuickItem *parent = nullptr);
 
 	void				setUp();
 	QVariant			userMustSpecify()													const	{ return _userMustSpecify;	}
@@ -47,7 +47,7 @@ public:
 	QVariant			rhs()																const	{ return _rhs;				}
 	QString				name()																const	{ return _name;				}
 
-	QString				toString(bool &isNull)												const;
+	QString				toString(const QString& newLine, const QString& indent, bool &isNull) const;
 	bool				parseRSyntaxOptions(Json::Value &options)							const;
 	RSyntax*			rSyntax()															const	{ return _rSyntax;			}
 	AnalysisForm	*	form()																const;
@@ -86,4 +86,4 @@ private:
 							_rightFormulaSources;
 };
 
-#endif // FORMULA_H
+#endif // FORMULABASE_H

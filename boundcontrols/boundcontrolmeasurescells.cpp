@@ -21,7 +21,7 @@
 #include "models/listmodelfactorlevels.h"
 #include "controls/jasplistcontrol.h"
 #include "analysisform.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 
 #include <QTimer>
 

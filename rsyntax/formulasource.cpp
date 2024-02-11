@@ -17,7 +17,7 @@
 //
 
 #include "formulasource.h"
-#include "formula.h"
+#include "formulabase.h"
 #include "analysisform.h"
 #include "controls/jasplistcontrol.h"
 #include "controls/sourceitem.h"
@@ -69,7 +69,7 @@ FormulaSource::RandomEffects::RandomEffects(const QVariant &var)
 	}
 }
 
-FormulaSource::FormulaSource(Formula* formula, const QVariant& var) : QObject(formula), _formula(formula)
+FormulaSource::FormulaSource(FormulaBase* formula, const QVariant& var) : QObject(formula), _formula(formula)
 {
 	QMap<QString, QVariant> map;
 	JASPControl* sourceControl = var.value<JASPControl*>();
@@ -144,7 +144,7 @@ FormulaSource::FormulaSource(Formula* formula, const QVariant& var) : QObject(fo
 	}
 }
 
-QVector<FormulaSource*> FormulaSource::makeFormulaSources(Formula* formula, const QVariant& var)
+QVector<FormulaSource*> FormulaSource::makeFormulaSources(FormulaBase* formula, const QVariant& var)
 {
 	QVector<FormulaSource*> result;
 	QList<QVariant> allFormulaSources = SourceItem::getListVariant(var);
@@ -172,7 +172,7 @@ QStringList FormulaSource::modelSources() const
 		const QVector<SourceItem*>& sourceItems = model->listView()->sourceItems();
 		for (SourceItem* sourceItem : sourceItems)
 		{
-			ListModel* listModel = sourceItem->listModel();
+			ListModel* listModel = sourceItem->sourceListModel();
 			if (listModel) sources.append(listModel->name());
 		}
 	};
@@ -452,7 +452,7 @@ FormulaParser::ParsedTerms FormulaSource::_fillOptionsWithFixedTerms(ListModel* 
 	const QVector<SourceItem*>& sourceItems = model->listView()->sourceItems();
 	for (SourceItem* sourceItem : sourceItems)
 	{
-		ListModelAssignedInterface* assignedSourceModel = qobject_cast<ListModelAssignedInterface*>(sourceItem->listModel());
+		ListModelAssignedInterface* assignedSourceModel = qobject_cast<ListModelAssignedInterface*>(sourceItem->sourceListModel());
 		if (assignedSourceModel)
 		{
 			if (specifiedByUserSources.contains(assignedSourceModel->name()))	specifiedSourceModels.push_back(assignedSourceModel);
@@ -466,7 +466,7 @@ FormulaParser::ParsedTerms FormulaSource::_fillOptionsWithFixedTerms(ListModel* 
 		const QVector<SourceItem*>& sourceItems = availableModel->listView()->sourceItems();
 		for (SourceItem* sourceItem : sourceItems)
 		{
-			ListModelAssignedInterface* assignedSourceModel = qobject_cast<ListModelAssignedInterface*>(sourceItem->listModel());
+			ListModelAssignedInterface* assignedSourceModel = qobject_cast<ListModelAssignedInterface*>(sourceItem->sourceListModel());
 			if (assignedSourceModel)
 			{
 				if (specifiedByUserSources.contains(assignedSourceModel->name()))	specifiedSourceModels.push_back(assignedSourceModel);
@@ -563,7 +563,7 @@ FormulaParser::ParsedTerms FormulaSource::_fillOptionsWithRandomTerms(const Form
 	const QVector<SourceItem*>& sourceItems = _model->listView()->sourceItems();
 	for (SourceItem* sourceItem : sourceItems)
 	{
-		ListModelAssignedInterface* assignedSourceModel = qobject_cast<ListModelAssignedInterface*>(sourceItem->listModel());
+		ListModelAssignedInterface* assignedSourceModel = qobject_cast<ListModelAssignedInterface*>(sourceItem->sourceListModel());
 		if (assignedSourceModel)
 			sourceModels.push_back(assignedSourceModel);
 	}

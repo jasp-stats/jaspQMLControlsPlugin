@@ -27,7 +27,7 @@
 #include "models/listmodel.h"
 #include "models/listmodeltermsavailable.h"
 #include "utilities/messageforwarder.h"
-#include "utilities/qutils.h"
+#include "qutils.h"
 #include <queue>
 
 class ListModelTermsAssigned;
@@ -56,7 +56,7 @@ class AnalysisForm : public QQuickItem
 	Q_PROPERTY(bool			runOnChange				READ runOnChange			WRITE setRunOnChange			NOTIFY runOnChangeChanged			)
 	Q_PROPERTY(QString		info					READ info					WRITE setInfo					NOTIFY infoChanged					)
 	Q_PROPERTY(QString		helpMD					READ helpMD													NOTIFY helpMDChanged				)
-	Q_PROPERTY(QVariant		analysis				READ analysis												NOTIFY analysisInitialized			)
+	Q_PROPERTY(QVariant		analysis				READ analysis												NOTIFY analysisChanged				)
 	Q_PROPERTY(QVariantList	optionNameConversion	READ optionNameConversion	WRITE setOptionNameConversion	NOTIFY optionNameConversionChanged	)
 	Q_PROPERTY(bool			showRButton				READ showRButton											NOTIFY showRButtonChanged			)
 	Q_PROPERTY(bool			developerMode			READ developerMode											NOTIFY developerModeChanged			)
@@ -83,7 +83,6 @@ public:
 	void					blockValueChangeSignal(bool block, bool notifyOnceUnblocked = true);
 	QString					title()							const	{ return _analysis ? tq(_analysis->title())		: "";		}
 	QString					name()							const	{ return _analysis ? tq(_analysis->name())		: "";		}
-	QString					qmlName()						const	{ return _analysis ? tq(_analysis->qmlName())	: "";		}
 	QString					module()						const	{ return _analysis ? tq(_analysis->module())	: "";		}
 	QString					version()						const	{ return _analysis ? tq(_analysis->moduleVersion().asString()) : "";	}
 	bool					hasVolatileNotes()				const	{ return _hasVolatileNotes;									}
@@ -121,7 +120,7 @@ signals:
 	void					helpMDChanged();
 	void					errorsChanged();
 	void					warningsChanged();
-	void					analysisInitialized();
+	void					analysisChanged();
 	void					rSourceChanged(const QString& name);
 	void					optionNameConversionChanged();
 	void					titleChanged();
@@ -148,7 +147,6 @@ public:
 	Q_INVOKABLE void		runAnalysis();
 	Q_INVOKABLE bool		initialized()			const	{ return _initialized; }
 	Q_INVOKABLE QString		generateWrapper()		const;
-	Q_INVOKABLE QString		parseOptions(const QString& options, const QString& data);
 
 	void			addControlError(JASPControl* control, QString message, bool temporary = false, bool warning = false);
 	void			clearControlError(JASPControl* control);
@@ -167,7 +165,7 @@ public:
 	QString			warnings()				const	{ return msgsListToString(_formWarnings);	}
 	QVariant		analysis()				const	{ return QVariant::fromValue(_analysis);	}
 	RSyntax*		rSyntax()				const	{ return _rSyntax;							}
-	QString			generateRSyntax()		const;
+	QString			generateRSyntax(bool useHtml = false) const;
 	QVariantList	optionNameConversion()	const;
 	bool			isFormulaName(const QString& name)	const;
 
@@ -182,6 +180,7 @@ public:
 	void			sortControls(QList<JASPControl*>& controls);
 	QString			getSyntaxName(const QString& name)				const;
 	void			setHasVolatileNotes(bool hasVolatileNotes);
+	bool			parseOptions(Json::Value& options);
 	void			setActiveJASPControl(JASPControl* control, bool hasActiveFocus);
 	JASPControl*	getActiveJASPControl()	{ return _activeJASPControl; }
 

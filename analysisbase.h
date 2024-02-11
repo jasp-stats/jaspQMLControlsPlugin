@@ -28,7 +28,6 @@ public:
 	virtual bool needsRefresh()												const	{ return false;				}
 	virtual const std::string & module()									const	{ return emptyString;		}
 	virtual const std::string & name()										const	{ return emptyString;		}
-	virtual const std::string & qmlName()									const	{ return emptyString;		}
 	virtual const std::string & title()										const	{ return emptyString;		}
 	virtual void setTitle(const std::string& titel)									{}
 	virtual void preprocessMarkdownHelp(const QString& md)					const	{}
@@ -41,11 +40,13 @@ public:
 									bool ignoreReadyForUse = false)			const;
 
 	virtual Q_INVOKABLE	QString	helpFile()									const	{ return ""; }
+	virtual Q_INVOKABLE void	createForm(QQuickItem* parentItem=nullptr);
 	virtual				void	destroyForm();
 
 	const Json::Value&	boundValues()										const	{ return _boundValues;		}
 	const Json::Value&	orgBoundValues()									const	{ return _orgBoundValues;	}
-	const Json::Value&	boundValue(const std::string& name, const QVector<JASPControl::ParentKey>& parentKeys = {});
+	const Json::Value&	boundValue(const std::string& name, 
+								   const QVector<JASPControl::ParentKey>& parentKeys = {});
 
 	void				setBoundValue(const std::string& name, const Json::Value& value, const Json::Value& meta, const QVector<JASPControl::ParentKey>& parentKeys = {});
 	void				setBoundValues(const Json::Value& boundValues);
@@ -63,10 +64,12 @@ public:
 
 
 public slots:
-	virtual void	boundValueChangedHandler()														{}
-	virtual void	requestColumnCreationHandler(const std::string&columnName, columnType colType)	{}
-	virtual void	requestComputedColumnCreationHandler(const std::string& columnName)				{}
-	virtual void	requestComputedColumnDestructionHandler(const std::string& columnName)			{}
+	virtual void	boundValueChangedHandler()																	{}
+	virtual void	requestColumnCreationHandler(			const std::string & columnName, columnType colType)	{}
+	virtual void	requestComputedColumnCreationHandler(	const std::string & columnName)						{}
+	virtual void	requestComputedColumnDestructionHandler(const std::string & columnName)						{}
+	virtual void	onUsedVariablesChanged()																	{}
+	
 
 signals:
 	void			sendRScriptSignal(QString script, QString controlName, bool whiteListedVersion, QString module);

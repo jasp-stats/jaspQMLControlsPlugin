@@ -1,5 +1,5 @@
 import QtQuick
-
+import JASP.Controls
 
 MenuButton
 {

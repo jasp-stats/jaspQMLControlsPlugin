@@ -27,12 +27,12 @@ FocusScope
 	implicitWidth		: expanderButton.visible ? parent.width : 0
 	anchors.topMargin	: expanderButton.visible ? 15 * preferencesModel.uiScale : 0
 	clip				: true
-	L.Layout.columnSpan	: form ? form.columns : 1
+	L.Layout.columnSpan	: jaspForm ? jaspForm.columns : 1
 	objectName			: "Section"
 
-	//ALTNavigation.enabled:			visible
-	//ALTNavigation.showChildren:		true
-	//ALTNavigation.onTagMatch:		{ expanded = true; expanderButton.forceActiveFocus(); }
+	ALTNavigation.enabled:			visible
+	ALTNavigation.showChildren:		true
+	ALTNavigation.onTagMatch:		{ expanded = true; expanderButton.forceActiveFocus(); }
 
 	default		property alias	content					: expanderArea.children
 				property alias	button					: expanderButton

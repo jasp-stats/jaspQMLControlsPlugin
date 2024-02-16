@@ -77,20 +77,25 @@ find_package(
 
 qt6_policy(SET QTP0001 NEW)
 
-#add_subdirectory(jaspCommon)
+add_subdirectory(jaspCommon)
 
-#list(APPEND HEADER_FILES
-#    analysisbase.h
-#    analysisform.h
-#    jasptheme.h
-#    preferencesmodelbase.h
-#    sortable.h
-#    variableinfo.h
-#    simpleDataSetModel.h
-#)
+FUNCTION (EXCLUDE_FILES_FROM_DIR_IN_LIST _InFileList _excludeDirName)
+  foreach (ITR ${_InFileList})
+    if ("${ITR}" MATCHES "(.*)${_excludeDirName}(.*)")                   # Check if the item matches the directory name in _excludeDirName
+      message(STATUS "Remove Item from List:${ITR}")
+      list (REMOVE_ITEM _InFileList ${ITR})                              # Remove the item from the list
+    endif ("${ITR}" MATCHES "(.*)${_excludeDirName}(.*)")
+
+  endforeach(ITR)
+  set(SOURCE_FILES ${_InFileList} PARENT_SCOPE)                          # Return the SOURCE_FILES variable to the calling parent
+ENDFUNCTION (EXCLUDE_FILES_FROM_DIR_IN_LIST)
+
 
 file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/*.h")
+
+EXCLUDE_FILES_FROM_DIR_IN_LIST("${SOURCE_FILES}" "jaspCommon/")
+EXCLUDE_FILES_FROM_DIR_IN_LIST("${HEADER_FILES}" "jaspCommon/")
 
 file(GLOB QML_CONTROLS RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "components/JASP/Controls/*.qml")
 file(GLOB QML_THEME RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "components/JASP/Theme/*.qml")
@@ -107,20 +112,6 @@ qt6_add_qml_module(jaspcontrolsplugin
     QML_FILES ${QML_CONTROLS}
 )
 
-#qt_add_qml_module(JASPQMLComponents
-#    URI MyJASP #JASP.Controls
-    #OUTPUT_DIRECTORY components/JASP/Controls/
-    #VERSION 1.0
-    #NO_PLUGIN_OPTIONAL
-    #NO_GENERATE_PLUGIN_SOURCE
-    #NO_GENERATE_QMLDIR
-    #NO_GENERATE_QMLTYPES
-#    PLUGIN_TARGET JASPQMLComponents
-    #CLASS_NAME JASPQmlPlugin
-    #SOURCES ${SOURCE_FILES} ${HEADER_FILES} # plugin.cpp
-#    QML_FILES components/JASP/Controls/Label.qml #${QML_CONTROLS} ${QML_THEME}
-#)
-
 target_compile_definitions(jaspcontrolsplugin PUBLIC JASP_USES_QT_HERE)
 
 target_include_directories(
@@ -134,6 +125,7 @@ target_include_directories(
 
 
 target_link_libraries(jaspcontrolsplugin PRIVATE
+    CommonQt
     Qt::Core
     Qt::Gui
     Qt::Qml

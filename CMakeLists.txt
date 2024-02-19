@@ -3,15 +3,6 @@ project(jaspQMLComponents
     VERSION 0.19.0.0
     LANGUAGES CXX)
 
-set(JASP_VERSION_MAJOR "0")
-set(JASP_VERSION_MINOR "19")
-set(JASP_VERSION_PATCH "0")
-set(JASP_VERSION_TWEAK "0")
-
-set(JASP_VERSION "0.19.0.0")
-set(JASP_SHORT_VERSION "0.19")
-set(CRYPT_KEY "0x0c2ad4a4acb9f023")
-
 
 if(CMAKE_OSX_ARCHITECTURES STREQUAL "")
   set(CMAKE_OSX_ARCHITECTURES
@@ -48,16 +39,43 @@ endif()
 add_definitions(-DNO_JASPDESKTOP)
 
 set(CMAKE_MESSAGE_CONTEXT_SHOW ON)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 set(CMAKE_FIND_FRAMEWORK ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 
 include(FetchContent)
 include(CMakePrintHelpers)
+
+if(NOT DEFINED GIT_CURRENT_BRANCH)
+    find_package(Git)
+
+    if(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
+
+      message(CHECK_START "Retrieving the git-branch information")
+
+      execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_BRANCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+      execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --verify HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+      message(CHECK_PASS "done.")
+
+      set(GIT_CURRENT_BRANCH ${GIT_BRANCH})
+      set(GIT_CURRENT_COMMIT ${GIT_COMMIT})
+
+      cmake_print_variables(GIT_CURRENT_BRANCH)
+      cmake_print_variables(GIT_CURRENT_COMMIT)
+    endif()
+endif()
 
 find_package(
    Qt6 REQUIRED
@@ -79,23 +97,8 @@ qt6_policy(SET QTP0001 NEW)
 
 add_subdirectory(jaspCommon)
 
-FUNCTION (EXCLUDE_FILES_FROM_DIR_IN_LIST _InFileList _excludeDirName)
-  foreach (ITR ${_InFileList})
-    if ("${ITR}" MATCHES "(.*)${_excludeDirName}(.*)")                   # Check if the item matches the directory name in _excludeDirName
-      message(STATUS "Remove Item from List:${ITR}")
-      list (REMOVE_ITEM _InFileList ${ITR})                              # Remove the item from the list
-    endif ("${ITR}" MATCHES "(.*)${_excludeDirName}(.*)")
-
-  endforeach(ITR)
-  set(SOURCE_FILES ${_InFileList} PARENT_SCOPE)                          # Return the SOURCE_FILES variable to the calling parent
-ENDFUNCTION (EXCLUDE_FILES_FROM_DIR_IN_LIST)
-
-
-file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
-file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/*.h")
-
-EXCLUDE_FILES_FROM_DIR_IN_LIST("${SOURCE_FILES}" "jaspCommon/")
-EXCLUDE_FILES_FROM_DIR_IN_LIST("${HEADER_FILES}" "jaspCommon/")
+file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.cpp")
+file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.h")
 
 file(GLOB QML_CONTROLS RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "components/JASP/Controls/*.qml")
 file(GLOB QML_THEME RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "components/JASP/Theme/*.qml")
@@ -119,8 +122,9 @@ target_include_directories(
   PUBLIC # JASP
   ${PROJECT_SOURCE_DIR}/jaspCommon
   ${PROJECT_SOURCE_DIR}/jaspCommon/QtUtils
-  ${PROJECT_SOURCE_DIR}/controls
-  ${PROJECT_SOURCE_DIR}/rsyntax
+  ${PROJECT_SOURCE_DIR}/sources
+  ${PROJECT_SOURCE_DIR}/sources/controls
+  ${PROJECT_SOURCE_DIR}/sources/rsyntax
 )
 
 

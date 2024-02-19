@@ -31,6 +31,8 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QTimer>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include "controls/variableslistbase.h"
 #include "preferencesmodelbase.h"
 
@@ -252,16 +254,25 @@ void AnalysisForm::setHasVolatileNotes(bool hasVolatileNotes)
 	emit hasVolatileNotesChanged();
 }
 
-bool AnalysisForm::parseOptions(Json::Value &options)
+
+QString AnalysisForm::parseOptions(QString options)
 {
-	if (_rSyntax->parseRSyntaxOptions(options))
+	Json::Reader jsonReader;
+	Json::Value	 jsonOptions;
+
+	QJsonDocument doc = QJsonDocument::fromJson(options.toUtf8());
+	jsonReader.parse(doc.toJson().toStdString(), jsonOptions, false);
+
+	if (_rSyntax->parseRSyntaxOptions(jsonOptions))
 	{
-		bindTo(options);
-		options = _analysis->boundValues();
-		return true;
+		bindTo(jsonOptions);
+		jsonOptions = _analysis->boundValues();
+		return tq(jsonOptions.toStyledString());
+//		QJsonDocument resultDoc = QJsonDocument::fromJson(tq(jsonOptions.toStyledString()).toUtf8());
+//		return resultDoc.object();
 	}
 
-	return false;
+	return QString();
 }
 
 void AnalysisForm::_setUp()

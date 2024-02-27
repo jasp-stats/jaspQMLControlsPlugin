@@ -263,9 +263,6 @@ QString AnalysisForm::parseOptions(QString options)
 	QJsonDocument doc = QJsonDocument::fromJson(options.toUtf8());
 	jsonReader.parse(doc.toJson().toStdString(), jsonOptions, false);
 
-	if (!KnownIssues::issues())
-		new KnownIssues(this);
-
 	if (!_analysis)
 		setAnalysis(new AnalysisBase(this)); // Create a dummy analyis object
 

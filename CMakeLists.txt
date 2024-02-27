@@ -95,7 +95,7 @@ find_package(
 
 qt6_policy(SET QTP0001 NEW)
 
-add_subdirectory(jaspCommon)
+add_subdirectory(jaspCommonLib)
 
 file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.cpp")
 file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.h")
@@ -120,8 +120,8 @@ target_compile_definitions(jaspcontrolsplugin PUBLIC JASP_USES_QT_HERE)
 target_include_directories(
   jaspcontrolsplugin
   PUBLIC # JASP
-  ${PROJECT_SOURCE_DIR}/jaspCommon
-  ${PROJECT_SOURCE_DIR}/jaspCommon/QtUtils
+  ${PROJECT_SOURCE_DIR}/jaspCommonLib
+  ${PROJECT_SOURCE_DIR}/jaspCommonLib/QtUtils
   ${PROJECT_SOURCE_DIR}/sources
   ${PROJECT_SOURCE_DIR}/sources/controls
   ${PROJECT_SOURCE_DIR}/sources/rsyntax

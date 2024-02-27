@@ -1,0 +1,3 @@
+[submodule "jaspCommonLib"]
+	path = jaspCommonLib
+	url = https://github.com/jasp-stats/jaspCommonLib

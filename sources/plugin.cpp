@@ -9,10 +9,10 @@
 #include "models/term.h"
 #include "jaspcontrol.h"
 #include "ALTNavigation/altnavigation.h"
-#include "simpleDataSetModel.h"
 #include <qdebug.h>
 #include "jaspdoublevalidator.h"
 #include "formulabase.h"
+#include "knownissues.h"
 
 //![plugin]
 class JASPQmlPlugin : public QQmlEngineExtensionPlugin
@@ -63,7 +63,8 @@ class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 		qmlRegisterType<JASPDoubleValidator>						("JASP.Controls",		1, 0, "JASPDoubleValidator"				);
 		qmlRegisterType<FormulaBase>								("JASP.Controls",		1, 0, "Formula"							);
 
-		new SimpleDataSetModel(engine);
+		if (!KnownIssues::issues())
+			new KnownIssues(this);
 	}
 };
 //![plugin]

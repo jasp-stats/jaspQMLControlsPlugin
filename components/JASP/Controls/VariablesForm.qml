@@ -49,6 +49,8 @@ VariablesFormBase
 			property bool	removeInvisibles	: false
 
 			property double	_lastListWidth		: 0
+			property bool	_setSize			: NO_DESKTOP_MODE === undefined || !NO_DESKTOP_MODE
+
 
 	Item { id: items }
 
@@ -86,6 +88,7 @@ VariablesFormBase
 
 			Component.onCompleted:
 			{
+				console.log("ASSIGN BUTTON COMPLETED")
 				allAssignedVariablesList[index]	.activeFocusChanged		.connect(setIconToLeft	);
 				availableVariablesList			.activeFocusChanged		.connect(setIconToRight	);
 				allAssignedVariablesList[index]	.selectedItemsChanged	.connect(setState		);
@@ -93,9 +96,12 @@ VariablesFormBase
 			}
 		}
 	}
-	
-	function init()
+
+	function setInitWidth()
 	{
+		if (!_setSize)
+			return
+
 		for (var i in allJASPControls)
 		{
 			var control					= allJASPControls[i]
@@ -115,8 +121,15 @@ VariablesFormBase
 			}
 		}
 
+	}
+	
+	function init()
+	{
+		setInitWidth()
 		var countAssignedList = 0
 		var availableDropKeys = []
+		console.log("allAssignedVariablesList length: " + allAssignedVariablesList.length)
+
 		for (var key in allAssignedVariablesList)
 		{
 			countAssignedList++;
@@ -133,24 +146,31 @@ VariablesFormBase
 					assignedList.draggingChanged.connect(allAssignedVariablesList[key2].setEnabledState);
 			}
 
+			console.log("DROPKEYS SET to " + assignedDropKeys[0])
 			assignedList.dropKeys = assignedDropKeys;
 		}
 
 		availableVariablesList.dropKeys = availableDropKeys
 		setControlsSize()
 		assignButtonRepeater.model = countAssignedList;
-		setTabOrder();
 
-		availableVariablesList.height = Qt.binding(function() { return variablesForm.height; })
-		// Set the width of the VariablesList to listWidth only if it is not set explicitely
-		// Implicitely, the width is set to the parent width.
-		if (widthSetByForm(availableVariablesList))
-			availableVariablesList.width = Qt.binding(function() { return variablesForm.listWidth; })
+		if (_setSize)
+		{
+			setTabOrder();
+			availableVariablesList.height = Qt.binding(function() { return variablesForm.height; })
+			// Set the width of the VariablesList to listWidth only if it is not set explicitely
+			// Implicitely, the width is set to the parent width.
+			if (widthSetByForm(availableVariablesList))
+				availableVariablesList.width = Qt.binding(function() { return variablesForm.listWidth; })
+		}
 
 	}
 
 	function setControlsSize()
 	{
+		if (!_setSize)
+			return
+
 		var firstControl				= true;
 		var minHeightOfAssignedControls = 0;
 		var	changeableHeightControls	= [];

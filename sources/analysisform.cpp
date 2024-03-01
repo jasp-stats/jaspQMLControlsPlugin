@@ -38,9 +38,7 @@
 
 using namespace std;
 
-const QString AnalysisForm::rSyntaxControlName = "__RSyntaxTextArea";
-
-AnalysisForm::AnalysisForm(QQuickItem *parent) : QQuickItem(parent)
+AnalysisForm::AnalysisForm(QQuickItem *parent) : AnalysisFormBase(parent)
 {
 	setObjectName("AnalysisForm");
 
@@ -448,7 +446,7 @@ void AnalysisForm::addControlError(JASPControl* control, QString message, bool t
 			// Cannot instantiate _controlErrorMessageComponent in the constructor (it crashes), and it might be too late in the formCompletedHandler since error can be generated earlier
 			// So create it when it is needed for the first time.
 			if (!_controlErrorMessageComponent)
-				_controlErrorMessageComponent = new QQmlComponent(qmlEngine(this), "qrc:///components/JASP/Controls/ControlErrorMessage.qml");
+				_controlErrorMessageComponent = new QQmlComponent(qmlEngine(this), "qrc:///jasp-stats.org/imports/JASP/Controls/components/JASP/Controls//ControlErrorMessage.qml");
 
 			controlErrorMessageItem = qobject_cast<QQuickItem*>(_controlErrorMessageComponent->create(QQmlEngine::contextForObject(this)));
 			if (!controlErrorMessageItem)
@@ -853,7 +851,7 @@ std::vector<std::vector<string> > AnalysisForm::_getValuesFromJson(const Json::V
 	return result;
 }
 
-void  AnalysisForm::setBoundValue(const string &name, const Json::Value &value, const Json::Value &meta, const QVector<JASPControl::ParentKey> &parentKeys)
+void  AnalysisForm::setBoundValue(const string &name, const Json::Value &value, const Json::Value &meta, const QVector<AnalysisBase::ParentKey> &parentKeys)
 {
 	if (_analysis)
 		_analysis->setBoundValue(name, value, meta, parentKeys);

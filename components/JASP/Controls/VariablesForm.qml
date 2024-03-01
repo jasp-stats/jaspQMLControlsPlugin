@@ -49,7 +49,7 @@ VariablesFormBase
 			property bool	removeInvisibles	: false
 
 			property double	_lastListWidth		: 0
-			property bool	_setSize			: NO_DESKTOP_MODE === undefined || !NO_DESKTOP_MODE
+			property bool	_setSize			: (typeof NO_DESKTOP_MODE === "undefined") || !NO_DESKTOP_MODE
 
 
 	Item { id: items }
@@ -88,7 +88,6 @@ VariablesFormBase
 
 			Component.onCompleted:
 			{
-				console.log("ASSIGN BUTTON COMPLETED")
 				allAssignedVariablesList[index]	.activeFocusChanged		.connect(setIconToLeft	);
 				availableVariablesList			.activeFocusChanged		.connect(setIconToRight	);
 				allAssignedVariablesList[index]	.selectedItemsChanged	.connect(setState		);
@@ -109,7 +108,7 @@ VariablesFormBase
 			control.visibleChanged.connect(setControlsSize)
 
 			var isControlList		= ((control instanceof VariablesList) || (control instanceof FactorLevelList) || (control instanceof InputListView))
-			var isControlComboBox	= (control instanceof ComboBox)
+			var isControlComboBox	= (control instanceof DropDown)
 
 			if (isControlList && widthSetByForm(control))
 				// Change the width of the VariablesList only if was not set explicitely
@@ -128,7 +127,6 @@ VariablesFormBase
 		setInitWidth()
 		var countAssignedList = 0
 		var availableDropKeys = []
-		console.log("allAssignedVariablesList length: " + allAssignedVariablesList.length)
 
 		for (var key in allAssignedVariablesList)
 		{
@@ -146,7 +144,6 @@ VariablesFormBase
 					assignedList.draggingChanged.connect(allAssignedVariablesList[key2].setEnabledState);
 			}
 
-			console.log("DROPKEYS SET to " + assignedDropKeys[0])
 			assignedList.dropKeys = assignedDropKeys;
 		}
 

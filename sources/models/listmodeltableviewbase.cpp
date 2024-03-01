@@ -24,7 +24,7 @@
 #include "qutils.h"
 #include "controls/tableviewbase.h"
 #include "controls/textinputbase.h"
-#include "utilities/desktopcommunicator.h"
+#include "desktopcommunicator.h"
 
 using namespace std;
 

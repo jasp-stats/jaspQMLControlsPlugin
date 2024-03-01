@@ -14,11 +14,13 @@
 #include "formulabase.h"
 #include "knownissues.h"
 
+
 //![plugin]
 class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID QQmlEngineExtensionInterface_iid)
+
 
 	void initializeEngine(QQmlEngine *engine, const char *uri) override
 	{
@@ -50,8 +52,10 @@ class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 		engine->rootContext()->setContextProperty("WINDOWS",				isWindows);
 		engine->rootContext()->setContextProperty("INTERACTION_SEPARATOR",	Term::separator);
 
-		engine->rootContext()->setContextProperty("preferencesModel",		new PreferencesModelBase()	);
-		engine->rootContext()->setContextProperty("jaspTheme",				new JaspTheme()	);
+		if (engine->rootContext()->contextProperty("preferencesModel").isNull())
+			engine->rootContext()->setContextProperty("preferencesModel",		new PreferencesModelBase()	);
+		if (engine->rootContext()->contextProperty("jaspTheme").isNull())
+			engine->rootContext()->setContextProperty("jaspTheme",				new JaspTheme()	);
 
 		qmlRegisterUncreatableMetaObject(JASP::staticMetaObject, // static meta object
 										 "JASP.Controls",        // import statement
@@ -60,6 +64,8 @@ class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 										 "Error: only enums");
 
 		ALTNavigation::registerQMLTypes("JASP.Controls");
+		// TODO: ALTNavControl::ctrl()->enableAlTNavigation(_preferences->ALTNavModeActive());
+
 		qmlRegisterType<JASPDoubleValidator>						("JASP.Controls",		1, 0, "JASPDoubleValidator"				);
 		qmlRegisterType<FormulaBase>								("JASP.Controls",		1, 0, "Formula"							);
 

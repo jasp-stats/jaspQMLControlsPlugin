@@ -26,7 +26,7 @@
 #include "rowcontrols.h"
 #include "sourceitem.h"
 #include "jasptheme.h"
-#include "utilities/desktopcommunicator.h"
+#include "desktopcommunicator.h"
 
 #include <QQmlContext>
 

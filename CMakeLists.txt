@@ -95,7 +95,9 @@ find_package(
 
 qt6_policy(SET QTP0001 NEW)
 
-add_subdirectory(jaspCommonLib)
+if(NOT BUILDING_JASP)
+    add_subdirectory(jaspCommonLib)
+endif()
 
 file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.cpp")
 file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.h")
@@ -106,6 +108,7 @@ file(GLOB QML_THEME RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "components/JASP/Theme/
 qt6_add_qml_module(jaspcontrolsplugin
     URI JASP.Controls
     OUTPUT_DIRECTORY "JASP/Controls"
+    RESOURCE_PREFIX /jasp-stats.org/imports
     PLUGIN_TARGET jaspcontrolsplugin
     DEPENDENCIES QtQuick
     NO_PLUGIN_OPTIONAL
@@ -126,6 +129,23 @@ target_include_directories(
   ${PROJECT_SOURCE_DIR}/sources/controls
   ${PROJECT_SOURCE_DIR}/sources/rsyntax
 )
+
+if(BUILDING_JASP)
+    target_include_directories(
+      jaspcontrolsplugin
+      PUBLIC # JASP
+      ${PROJECT_SOURCE_DIR}/../jaspCommonLib
+      ${PROJECT_SOURCE_DIR}/../jaspCommonLib/QtUtils
+    )
+else()
+    target_include_directories(
+      jaspcontrolsplugin
+      PUBLIC # JASP
+      ${PROJECT_SOURCE_DIR}/jaspCommonLib
+      ${PROJECT_SOURCE_DIR}/jaspCommonLib/QtUtils
+    )
+endif()
+
 
 
 target_link_libraries(jaspcontrolsplugin PRIVATE

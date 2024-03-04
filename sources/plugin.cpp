@@ -9,6 +9,7 @@
 #include "models/term.h"
 #include "jaspcontrol.h"
 #include "ALTNavigation/altnavigation.h"
+#include "ALTNavigation/altnavcontrol.h"
 #include <qdebug.h>
 #include "jaspdoublevalidator.h"
 #include "formulabase.h"
@@ -52,8 +53,13 @@ class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 		engine->rootContext()->setContextProperty("WINDOWS",				isWindows);
 		engine->rootContext()->setContextProperty("INTERACTION_SEPARATOR",	Term::separator);
 
-		if (engine->rootContext()->contextProperty("preferencesModel").isNull())
-			engine->rootContext()->setContextProperty("preferencesModel",		new PreferencesModelBase()	);
+		PreferencesModelBase* prefModel = engine->rootContext()->contextProperty("preferencesModel").value<PreferencesModelBase*>();
+		if (prefModel == nullptr)
+		{
+			prefModel = new PreferencesModelBase();
+			engine->rootContext()->setContextProperty("preferencesModel",		prefModel);
+		}
+
 		if (engine->rootContext()->contextProperty("jaspTheme").isNull())
 			engine->rootContext()->setContextProperty("jaspTheme",				new JaspTheme()	);
 
@@ -64,10 +70,15 @@ class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 										 "Error: only enums");
 
 		ALTNavigation::registerQMLTypes("JASP.Controls");
-		// TODO: ALTNavControl::ctrl()->enableAlTNavigation(_preferences->ALTNavModeActive());
+		ALTNavControl::ctrl()->enableAlTNavigation(prefModel->ALTNavModeActive());
+		connect(prefModel,	&PreferencesModelBase::ALTNavModeActiveChangedBase,	ALTNavControl::ctrl(),	&ALTNavControl::enableAlTNavigation);
 
 		qmlRegisterType<JASPDoubleValidator>						("JASP.Controls",		1, 0, "JASPDoubleValidator"				);
 		qmlRegisterType<FormulaBase>								("JASP.Controls",		1, 0, "Formula"							);
+
+		if (!qmlTypeId("JASP", 1, 0, "DataSetView"	))
+			//TODO: Make a fake DataSetView...
+			qmlRegisterType<QQuickItem>								("JASP",				1, 0, "DataSetView"						);
 
 		if (!KnownIssues::issues())
 			new KnownIssues(this);

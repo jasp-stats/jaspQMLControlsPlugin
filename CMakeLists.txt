@@ -30,11 +30,7 @@ else()
             FORCE)
 endif()
 
-option(BUILDING_JASP "Indicates whether we are building JASP or not.
-                                              This helps jaspResults to find its lib_json." ON)
-if(BUILDING_JASP)
-   add_definitions(-DBUILDING_JASP)
-endif()
+add_definitions(-DBUILDING_JASP) # This is needed for the building of the common lib, even if the plugin is compiled outside of JASP
 
 add_definitions(-DNO_JASPDESKTOP)
 
@@ -67,7 +63,10 @@ find_package(
 qt6_policy(SET QTP0001 NEW)
 
 if(NOT BUILDING_JASP)
+    message(STATUS "Build outside of JASP: add jaspCommonLib")
     add_subdirectory(jaspCommonLib)
+else()
+    message(STATUS "Build within JASP")
 endif()
 
 file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.cpp")
@@ -94,8 +93,6 @@ target_compile_definitions(jaspcontrolsplugin PUBLIC JASP_USES_QT_HERE)
 target_include_directories(
   jaspcontrolsplugin
   PUBLIC # JASP
-  ${PROJECT_SOURCE_DIR}/jaspCommonLib
-  ${PROJECT_SOURCE_DIR}/jaspCommonLib/QtUtils
   ${PROJECT_SOURCE_DIR}/sources
   ${PROJECT_SOURCE_DIR}/sources/controls
   ${PROJECT_SOURCE_DIR}/sources/rsyntax
@@ -116,8 +113,6 @@ else()
       ${PROJECT_SOURCE_DIR}/jaspCommonLib/QtUtils
     )
 endif()
-
-
 
 target_link_libraries(jaspcontrolsplugin PRIVATE
     CommonQt

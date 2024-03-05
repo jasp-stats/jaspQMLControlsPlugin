@@ -89,7 +89,7 @@ public:
 	bool					hasVolatileNotes()				const	{ return _hasVolatileNotes;									}
 	bool					wasUpgraded()					const	{ return _analysis ? _analysis->wasUpgraded() : false;		}
 	bool					formCompleted()					const	override { return _formCompleted;	}
-	bool					showRButton()					const	{ return _showRButton;		}
+	bool					showRButton()					const	override { return _showRButton;		}
 	bool					developerMode()					const	{ return _developerMode;	}
 	QString					rSyntaxText()					const;
 	bool					showAllROptions()				const;

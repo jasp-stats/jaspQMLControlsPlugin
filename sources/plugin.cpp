@@ -61,7 +61,11 @@ class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 		}
 
 		if (engine->rootContext()->contextProperty("jaspTheme").isNull())
-			engine->rootContext()->setContextProperty("jaspTheme",				new JaspTheme()	);
+		{
+			JaspTheme* defaultJaspTheme = new JaspTheme();
+			defaultJaspTheme->setIconPath("/default/");
+			engine->rootContext()->setContextProperty("jaspTheme",				defaultJaspTheme	);
+		}
 
 		qmlRegisterUncreatableMetaObject(JASP::staticMetaObject, // static meta object
 										 "JASP.Controls",        // import statement
@@ -78,7 +82,7 @@ class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 
 		if (!qmlTypeId("JASP", 1, 0, "DataSetView"	))
 			//TODO: Make a fake DataSetView...
-			qmlRegisterType<QQuickItem>								("JASP",				1, 0, "DataSetView"						);
+			qmlRegisterType<QQuickItem>								("JASP.Controls",		1, 0, "DataSetView"						);
 
 		if (!KnownIssues::issues())
 			new KnownIssues(this);

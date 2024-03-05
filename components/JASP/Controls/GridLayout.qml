@@ -29,7 +29,8 @@ QTL.GridLayout
 	QTL.Layout.alignment:		Qt.AlignTop | Qt.AlignLeft
 	
 	property int count									: children.length
-	property bool checkFormOverflowWhenLanguageChanged	: true
+	property bool isJaspDesktop							: (typeof NO_DESKTOP_MODE === "undefined") || !NO_DESKTOP_MODE
+	property bool checkFormOverflowWhenLanguageChanged	: isJaspDesktop
 
 	property int _initialColumns	: 2
 
@@ -37,11 +38,12 @@ QTL.GridLayout
 
 	onCountChanged:
 	{
-		for (var i = 0; i < children.length; i++)
-		{
-			if (typeof children[i].alignment !== "undefined")
-				children[i].Layout.alignment = children[i].alignment;
-		}
+		if (isJaspDesktop)
+			for (var i = 0; i < children.length; i++)
+			{
+				if (typeof children[i].alignment !== "undefined")
+					children[i].Layout.alignment = children[i].alignment;
+			}
 	}
 
 	Connections

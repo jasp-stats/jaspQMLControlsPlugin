@@ -73,7 +73,6 @@ file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.cpp")
 file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.h")
 
 file(GLOB QML_CONTROLS RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "components/JASP/Controls/*.qml")
-file(GLOB QML_THEME RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "components/JASP/Theme/*.qml")
 
 qt6_add_qml_module(jaspcontrolsplugin
     URI JASP.Controls
@@ -125,4 +124,11 @@ target_link_libraries(jaspcontrolsplugin PRIVATE
     Qt::Widgets
 )
 
+file(GLOB_RECURSE DEFAULT_RESOURCE_FILES "${PROJECT_SOURCE_DIR}/resources/*")
+qt_add_resources(
+  jaspcontrolsplugin
+  "default"
+  PREFIX  "/default"
+  BASE "${PROJECT_SOURCE_DIR}/resources"
+  FILES ${DEFAULT_RESOURCE_FILES})
 

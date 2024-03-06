@@ -18,7 +18,7 @@
 
 
 import QtQuick
-import JASP
+//import JASP
 import JASP.Controls
 
 TableViewBase

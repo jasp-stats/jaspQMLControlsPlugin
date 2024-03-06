@@ -80,10 +80,6 @@ class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 		qmlRegisterType<JASPDoubleValidator>						("JASP.Controls",		1, 0, "JASPDoubleValidator"				);
 		qmlRegisterType<FormulaBase>								("JASP.Controls",		1, 0, "Formula"							);
 
-		if (!qmlTypeId("JASP", 1, 0, "DataSetView"	))
-			//TODO: Make a fake DataSetView...
-			qmlRegisterType<QQuickItem>								("JASP.Controls",		1, 0, "DataSetView"						);
-
 		if (!KnownIssues::issues())
 			new KnownIssues(this);
 	}

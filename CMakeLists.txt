@@ -32,8 +32,6 @@ endif()
 
 add_definitions(-DBUILDING_JASP) # This is needed for the building of the common lib, even if the plugin is compiled outside of JASP
 
-add_definitions(-DNO_JASPDESKTOP)
-
 set(CMAKE_MESSAGE_CONTEXT_SHOW ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -73,6 +71,10 @@ file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.cpp")
 file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.h")
 
 file(GLOB QML_CONTROLS RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "components/JASP/Controls/*.qml")
+
+if(BUILDING_JASP)
+    list(REMOVE_ITEM QML_CONTROLS "components/JASP/Controls/DataSetView.qml")
+endif()
 
 qt6_add_qml_module(jaspcontrolsplugin
     URI JASP.Controls

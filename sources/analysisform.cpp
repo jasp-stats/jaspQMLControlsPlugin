@@ -257,6 +257,7 @@ QString AnalysisForm::parseOptions(QString options)
 {
 	Json::Reader jsonReader;
 	Json::Value	 jsonOptions;
+	Json::Value jsonResult(Json::objectValue);
 
 	QJsonDocument doc = QJsonDocument::fromJson(options.toUtf8());
 	jsonReader.parse(doc.toJson().toStdString(), jsonOptions, false);
@@ -268,12 +269,11 @@ QString AnalysisForm::parseOptions(QString options)
 	{
 		bindTo(jsonOptions);
 		jsonOptions = _analysis->boundValues();
-		return tq(jsonOptions.toStyledString());
-//		QJsonDocument resultDoc = QJsonDocument::fromJson(tq(jsonOptions.toStyledString()).toUtf8());
-//		return resultDoc.object();
 	}
 
-	return QString();
+	jsonResult["options"] = jsonOptions;
+	jsonResult["error"] = fq(getError());
+	return tq(jsonResult.toStyledString());
 }
 
 void AnalysisForm::_setUp()
@@ -467,6 +467,7 @@ void AnalysisForm::addControlError(JASPControl* control, QString message, bool t
 			if (!container)
 				container = control->parentListView();
 		}
+		controlErrorMessageItem->setProperty("message", message);
 
 		controlErrorMessageItem->setProperty("control", QVariant::fromValue(control));
 		controlErrorMessageItem->setProperty("warning", warning);

@@ -41,7 +41,9 @@ ListModelCustomContrasts::ListModelCustomContrasts(TableViewBase *parent) : List
 	connect(VariableInfo::info(),	&VariableInfo::labelsChanged,		this,		&ListModelCustomContrasts::sourceLabelsChanged);
 	connect(VariableInfo::info(),	&VariableInfo::labelsReordered,		this,		&ListModelCustomContrasts::sourceLabelsReordered);
 	connect(VariableInfo::info(),	&VariableInfo::columnsChanged,		this,		&ListModelCustomContrasts::sourceColumnsChanged);
-	connect(infoProviderModel(),	&QAbstractItemModel::modelReset	,	this,		&ListModelCustomContrasts::sourceTermsReset);
+	QAbstractItemModel* providerModel = dynamic_cast<QAbstractItemModel*>(infoProvider());
+	if (providerModel)
+		connect(providerModel,	&QAbstractItemModel::modelReset	,		this,		&ListModelCustomContrasts::sourceTermsReset);
 }
 
 void ListModelCustomContrasts::sourceTermsReset()

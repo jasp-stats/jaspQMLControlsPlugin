@@ -43,7 +43,7 @@ SourceItem::SourceItem(
 	_sourceFilter					= !modelUse.isEmpty() ? modelUse.split(",") : QStringList();
 	_conditionExpression		= map["condition"].toString();
 	_values						= values;
-	_sourceNativeModel				= nativeModel;
+	_sourceNativeModel			= nativeModel;
 	_discardSources				= discardSources;
 	_rSources					= rSources;
 
@@ -52,9 +52,9 @@ SourceItem::SourceItem(
 	_combineWithOtherModels		= map.contains("combineWithOtherModels")	? map["combineWithOtherModels"].toBool()	: false;
 	_nativeModelRole			= map.contains("nativeModelRole")			? map["nativeModelRole"].toInt()			: Qt::DisplayRole;
 	_combineTerms				= map.contains("combineTerms")				? JASP::CombinationType(map["combineTerms"].toInt())	: JASP::CombinationType::NoCombination;
-	if (isInfoProviderModel(_sourceNativeModel))									_isDataSetVariables = true;
-	if (_sourceFilter.contains("levels"))											_targetListControl->setUseSourceLevels(true);
-	if (_targetListControl->useSourceLevels() && !_sourceFilter.contains("levels"))	_sourceFilter.append("levels");
+	if (_sourceNativeModel == dynamic_cast<QAbstractItemModel*>(infoProvider()))		_isDataSetVariables = true;
+	if (_sourceFilter.contains("levels"))												_targetListControl->setUseSourceLevels(true);
+	if (_targetListControl->useSourceLevels() && !_sourceFilter.contains("levels"))		_sourceFilter.append("levels");
 
 	for (const QMap<QString, QVariant>& conditionVariable : conditionVariables)
 	{
@@ -106,9 +106,10 @@ void SourceItem::connectModels()
 		connect(_sourceNativeModel, &QAbstractItemModel::rowsMoved,			this, &SourceItem::_resetModel);
 		connect(_sourceNativeModel, &QAbstractItemModel::modelReset,		this, &SourceItem::_resetModel);
 	}
-	if (_targetListControl->useSourceLevels() && _sourceNativeModel != infoProviderModel())
+	QAbstractItemModel* providerModel = dynamic_cast<QAbstractItemModel*>(infoProvider());
+	if (_targetListControl->useSourceLevels() && _sourceNativeModel != providerModel)
 	{
-		QAbstractItemModel* providerModel = infoProviderModel(); // When the levels/labels of the source is used, then any change of the provider model must also be signalled
+		//When the levels/labels of the source is used, then any change of the provider model must also be signalled
 		connect(providerModel, &QAbstractItemModel::rowsInserted,			this, &SourceItem::_resetModel);
 		connect(providerModel, &QAbstractItemModel::rowsRemoved,			this, &SourceItem::_resetModel);
 		connect(providerModel, &QAbstractItemModel::rowsMoved,				this, &SourceItem::_resetModel);
@@ -151,7 +152,10 @@ void SourceItem::disconnectModels()
 		_sourceNativeModel->disconnect(this);
 
 	if (_isDataSetVariables)
-		infoProviderModel()->disconnect(controlModel);
+	{
+		QAbstractItemModel* providerModel = dynamic_cast<QAbstractItemModel*>(infoProvider());
+		providerModel->disconnect(controlModel);
+	}
 
 	if (_sourceListModel)
 		_sourceListModel->disconnect(controlModel);
@@ -186,7 +190,8 @@ void SourceItem::_setUp()
 	else if (_targetListControl->form() && !_sourceName.isEmpty())	_sourceNativeModel = _targetListControl->form()->getModel(_sourceName);
 	else if (_isDataSetVariables)
 	{
-		_sourceNativeModel		= infoProviderModel();
+		QAbstractItemModel* providerModel = dynamic_cast<QAbstractItemModel*>(infoProvider());
+		_sourceNativeModel	= providerModel;
 		_nativeModelRole	= requestInfo(VariableInfo::NameRole).toInt();
 	}
 
@@ -200,11 +205,11 @@ void SourceItem::_setUp()
 		if (_targetListControl->initialized()) connectModels();
 		else connect(_targetListControl, &JASPControl::initializedChanged, this, &SourceItem::connectModels);
 	}
-	else if (_rSources.length() == 0)
+	else if (!_isDataSetVariables && _rSources.length() == 0)
 	{
 		if (_sourceName.isEmpty())
 		{
-			if (_targetListControl->form())		_targetListControl->addControlError(QObject::tr("No name given for the source of %1").arg(_targetListControl->name()));
+			if (_targetListControl->form())	_targetListControl->addControlError(QObject::tr("No name given for the source of %1").arg(_targetListControl->name()));
 			else							_targetListControl->addControlError(QObject::tr("No source given for %1").arg(_targetListControl->name()));
 		}
 		else								_targetListControl->addControlError(QObject::tr("Cannot find component %1 for the source of %2").arg(_sourceName).arg(_targetListControl->name()));

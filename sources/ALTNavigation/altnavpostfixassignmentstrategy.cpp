@@ -1,19 +1,20 @@
 #include "altnavpostfixassignmentstrategy.h"
 #include "altnavscope.h"
 #include <cmath>
+#include "jaspcontrol.h"
 
 std::string capitalLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-ALTNavPostfixAssignmentStrategy* ALTNavPostfixAssignmentStrategy::createStrategy(AssignmentStrategy strategy)
+ALTNavPostfixAssignmentStrategy* ALTNavPostfixAssignmentStrategy::createStrategy(JASP::AssignmentStrategy strategy)
 {
 	switch (strategy) {
-		case PRIORITIZED:
+		case JASP::AssignmentStrategy::PRIORITIZED:
 			return new PriorityStrategy();
-		case INDEXED:
+		case JASP::AssignmentStrategy::INDEXED:
 			return new IndexedStrategy();
-		case PASS_THROUGH:
+		case JASP::AssignmentStrategy::PASS_THROUGH:
 			return new PassthroughStrategy();
-		case UNKNOWN:
+		case JASP::AssignmentStrategy::UNKNOWN:
 		default:
 			return nullptr;
 	}

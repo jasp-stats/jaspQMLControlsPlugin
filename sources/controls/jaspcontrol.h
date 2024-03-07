@@ -24,7 +24,9 @@ namespace JASP
 	enum class TextType			{ TextTypeDefault	= static_cast<int>(CombinationType::Combination5Way)	+ 1,	TextTypeModel, TextTypeRcode, TextTypeJAGSmodel, TextTypeSource, TextTypeLavaan, TextTypeCSem };
 	enum class ModelType		{ Simple			= static_cast<int>(TextType::TextTypeLavaan)			+ 1,	GridInput, CustomContrasts, MultinomialChi2Model, JAGSDataInputModel, FilteredDataEntryModel };
 	enum class ItemType			{ String			= static_cast<int>(ModelType::FilteredDataEntryModel)	+ 1,	Integer, Double	};
+	enum class AssignmentStrategy { PASS_THROUGH	= static_cast<int>(ItemType::Double)					+ 1,	INDEXED, PRIORITIZED, UNKNOWN };
 
+	Q_ENUM_NS(AssignmentStrategy)
 	Q_ENUM_NS(Inclusive)
 	Q_ENUM_NS(DropMode)
 	Q_ENUM_NS(ListViewType)
@@ -70,7 +72,6 @@ class JASPControl : public QQuickItem
 	Q_PROPERTY( int									preferredWidth			READ preferredWidth			WRITE setPreferredWidth			NOTIFY preferredWidthChanged		)
 	Q_PROPERTY( int									cursorShape				READ cursorShape			WRITE setCursorShape												)
 	Q_PROPERTY( bool								hovered					READ hovered												NOTIFY hoveredChanged				)
-	Q_PROPERTY( int									alignment				READ alignment				WRITE setAlignment													)
 	Q_PROPERTY( Qt::FocusReason						focusReason				READ getFocusReason																				)
 	Q_PROPERTY( QVariant							depends					READ explicitDepends		WRITE setExplicitDepends		NOTIFY explicitDependsChanged		)
 
@@ -145,7 +146,6 @@ public:
 	int					preferredWidth()			const	{ return _preferredWidth;			}
 	int					cursorShape()				const	{ return _cursorShape;				}
 	bool				hovered()					const;
-	int					alignment()					const	{ return _alignment;				}
 	Qt::FocusReason		getFocusReason()			const	{ return _focusReason;				}
 	bool				dependsOnDynamicComponents() const	{ return _dependsOnDynamicComponents; }
 	const QVariant&		explicitDepends()			const	{ return _explicitDepends;			}
@@ -185,7 +185,6 @@ public slots:
 	void	setInnerControl(		QQuickItem* innerControl);
 	void	setPreferredHeight(		int preferredHeight, bool isBinding = false);
 	void	setPreferredWidth(		int preferredWidth, bool isBinding = false);
-	void	setAlignment(			int alignment)		{ _alignment = alignment; }
 
 	void	addControlError(			QString message);
 	void	addControlErrorTemporary(	QString message);
@@ -307,7 +306,6 @@ protected:
 	QStringList				_dependencyMustContain;
 	QQuickItem			*	_mouseAreaObj				= nullptr;
 	int						_cursorShape				= Qt::PointingHandCursor;
-	int						_alignment					= Qt::AlignTop | Qt::AlignLeft;
 	Qt::FocusReason			_focusReason				= Qt::FocusReason::NoFocusReason;
 	bool					_dependsOnDynamicComponents = false;
 	QVariant				_explicitDepends;

@@ -48,7 +48,7 @@ ComponentsListBase
 	property string addTooltip			: qsTr("Add a row")
 	property string removeTooltip		: qsTr("Remove a row")
     property bool   addBorder           : true
-	property var	titles
+	property var	titles				: []
 
 	Item
 	{
@@ -57,7 +57,7 @@ ComponentsListBase
 		anchors.left	: parent.left
 		height			: titles ? jaspTheme.variablesListTitle : 0
 		width			: parent.width
-		visible			: !title && titles
+		visible			: !title && titles.length > 0
 
 		Repeater
 		{

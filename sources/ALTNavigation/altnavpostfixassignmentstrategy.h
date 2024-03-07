@@ -2,6 +2,7 @@
 #define ALTNAVPOSTFIXASSIGNMENTSTRATEGY_H
 
 #include <QObject>
+#include "jaspcontrol.h"
 
 class ALTNavScope;
 
@@ -23,18 +24,11 @@ public:
 	virtual void assignPostfixes(QList<ALTNavScope*>&  children, QString prefix) = 0;
 
 	/*!
-	 * \brief The AssignmentStrategy enum defines all strategies
-	 */
-	enum AssignmentStrategy { PASS_THROUGH, INDEXED, PRIORITIZED, UNKNOWN };
-	Q_ENUM(AssignmentStrategy)
-
-
-	/*!
 	 * \brief Factory method that creates the desired strategy type
 	 * \param strategy
 	 * \return Specified strategy type
 	 */
-	static ALTNavPostfixAssignmentStrategy* createStrategy(AssignmentStrategy strategy);
+	static ALTNavPostfixAssignmentStrategy* createStrategy(JASP::AssignmentStrategy strategy);
 
 
 

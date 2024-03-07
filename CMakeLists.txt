@@ -73,6 +73,7 @@ file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/sources/*.h")
 file(GLOB QML_CONTROLS RELATIVE "${CMAKE_CURRENT_LIST_DIR}" "components/JASP/Controls/*.qml")
 
 if(BUILDING_JASP)
+    # The DataSetView is just a fake one. The real one will be registered if JASP Desktop is started. DataSetView it too intricated in the JASP Desktop code to be in the plugin.
     list(REMOVE_ITEM QML_CONTROLS "components/JASP/Controls/DataSetView.qml")
 endif()
 

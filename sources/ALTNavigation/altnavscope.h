@@ -7,8 +7,6 @@
 #include "altnavtagbase.h"
 #include "altnavpostfixassignmentstrategy.h"
 
-using AssignmentStrategy = ALTNavPostfixAssignmentStrategy::AssignmentStrategy;
-
 /*! \brief Attaching object type providing the properties and signals along with most of the tree construction and traversal logic.
  *
  */
@@ -28,7 +26,7 @@ class ALTNavScope : public QObject
 	//! Children of this scope will also be visible when this node is.
 	Q_PROPERTY( bool						showChildren				MEMBER		_propagateActivity																											);
 	//! Define postfix allocation strategy
-	Q_PROPERTY( AssignmentStrategy			strategy					MEMBER		_currentStrategy		WRITE	setStrategy			NOTIFY	postfixAssignmentStrategyChanged								);
+	Q_PROPERTY( JASP::AssignmentStrategy	strategy					MEMBER		_currentStrategy		WRITE	setStrategy			NOTIFY	postfixAssignmentStrategyChanged								);
 	//! Defines the x position of the visual tag relative to the attachee
 	Q_PROPERTY( int							x							MEMBER		_x						WRITE	setX																						);
 	//! Defines the y position of the visual tag relative to the attachee
@@ -96,7 +94,7 @@ public:
 
 	void setEnabled(bool value);
 	void setStrategy(ALTNavPostfixAssignmentStrategy* strategy);
-	void setStrategy(AssignmentStrategy strategy);
+	void setStrategy(JASP::AssignmentStrategy strategy);
 	void setRoot(bool value);
 	void setScopeOnly(bool value);
 
@@ -139,7 +137,7 @@ private:
 	QString _requestedPostfix = "";
 	int _index = -1;
 	int _scopePriority = 0;
-	AssignmentStrategy _currentStrategy = AssignmentStrategy::PRIORITIZED;
+	JASP::AssignmentStrategy _currentStrategy = JASP::AssignmentStrategy::PRIORITIZED;
 	qreal _x, _y;
 
 	QQuickItem* _attachee;

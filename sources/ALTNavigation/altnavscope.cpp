@@ -316,7 +316,7 @@ void ALTNavScope::setIndex(int index)
 		_parentScope->setChildrenPrefix();
 }
 
-void ALTNavScope::setStrategy(AssignmentStrategy strategy)
+void ALTNavScope::setStrategy(JASP::AssignmentStrategy strategy)
 {
 	setStrategy(ALTNavPostfixAssignmentStrategy::createStrategy(strategy));
 	emit postfixAssignmentStrategyChanged();

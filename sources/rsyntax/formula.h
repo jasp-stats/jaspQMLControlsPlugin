@@ -16,8 +16,8 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#ifndef FORMULABASE_H
-#define FORMULABASE_H
+#ifndef FORMULA_H
+#define FORMULA_H
 
 #include <QQuickItem>
 #include "qutils.h"
@@ -28,7 +28,7 @@ class RSyntax;
 class AnalysisForm;
 class ListModel;
 
-class FormulaBase : public QQuickItem
+class Formula : public QQuickItem
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -39,7 +39,7 @@ class FormulaBase : public QQuickItem
 	Q_PROPERTY( QString		name				READ name					WRITE setName					NOTIFY nameChanged					)
 
 public:
-	FormulaBase(QQuickItem *parent = nullptr);
+	Formula(QQuickItem *parent = nullptr);
 
 	void				setUp();
 	QVariant			userMustSpecify()													const	{ return _userMustSpecify;	}
@@ -86,4 +86,4 @@ private:
 							_rightFormulaSources;
 };
 
-#endif // FORMULABASE_H
+#endif // FORMULA_H

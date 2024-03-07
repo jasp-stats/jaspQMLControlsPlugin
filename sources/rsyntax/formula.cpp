@@ -16,7 +16,7 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "formulabase.h"
+#include "formula.h"
 #include "formulasource.h"
 #include "rsyntax.h"
 #include "controls/sourceitem.h"
@@ -24,22 +24,22 @@
 #include "log.h"
 #include "formulaparser.h"
 
-FormulaBase::FormulaBase(QQuickItem *parent) : QQuickItem(parent)
+Formula::Formula(QQuickItem *parent) : QQuickItem(parent)
 {
 	setVisible(false);
 }
 
-void FormulaBase::setUp()
+void Formula::setUp()
 {
 	_leftFormulaSources  = FormulaSource::makeFormulaSources(this, _lhs);
 	_rightFormulaSources = FormulaSource::makeFormulaSources(this, _rhs);
 
-	connect(this, &FormulaBase::lhsChanged, this, [this]() { _leftFormulaSources  = FormulaSource::makeFormulaSources(this, _lhs); emit somethingChanged();} );
-	connect(this, &FormulaBase::rhsChanged, this, [this]() { _rightFormulaSources = FormulaSource::makeFormulaSources(this, _rhs); emit somethingChanged();} );
+	connect(this, &Formula::lhsChanged, this, [this]() { _leftFormulaSources  = FormulaSource::makeFormulaSources(this, _lhs); emit somethingChanged();} );
+	connect(this, &Formula::rhsChanged, this, [this]() { _rightFormulaSources = FormulaSource::makeFormulaSources(this, _rhs); emit somethingChanged();} );
 }
 
 // Generate the R Formula
-QString FormulaBase::toString(const QString& newLine, const QString& indent, bool &isNull) const
+QString Formula::toString(const QString& newLine, const QString& indent, bool &isNull) const
 {
 	if (!_rSyntax)
 		return "";
@@ -136,7 +136,7 @@ QString FormulaBase::toString(const QString& newLine, const QString& indent, boo
 	return result;
 }
 
-bool FormulaBase::parseRSyntaxOptions(Json::Value &options) const
+bool Formula::parseRSyntaxOptions(Json::Value &options) const
 {
 	const Json::Value& formulaJson = options[fq(_name)];
 
@@ -164,12 +164,12 @@ bool FormulaBase::parseRSyntaxOptions(Json::Value &options) const
 	return _parseFormulaSources(_leftFormulaSources, leftParsedTerms, options) && _parseFormulaSources(_rightFormulaSources, rightParsedTerms, options);
 }
 
-AnalysisForm *FormulaBase::form() const
+AnalysisForm *Formula::form() const
 {
 	return _rSyntax ? _rSyntax->form() : nullptr;
 }
 
-QStringList FormulaBase::modelSources() const
+QStringList Formula::modelSources() const
 {
 	QStringList result = sourcesThatMustBeSpecified();
 
@@ -179,12 +179,12 @@ QStringList FormulaBase::modelSources() const
 	return result;
 }
 
-QStringList FormulaBase::sourcesThatMustBeSpecified() const
+QStringList Formula::sourcesThatMustBeSpecified() const
 {
 	return _getSourceList(_userMustSpecify);
 }
 
-QStringList FormulaBase::extraOptions(bool useOptionName, bool onlyFormula) const
+QStringList Formula::extraOptions(bool useOptionName, bool onlyFormula) const
 {
 	QStringList result;
 
@@ -194,7 +194,7 @@ QStringList FormulaBase::extraOptions(bool useOptionName, bool onlyFormula) cons
 	return result;
 }
 
-QStringList FormulaBase::_getSourceList(const QVariant &var) const
+QStringList Formula::_getSourceList(const QVariant &var) const
 {
 	QStringList result;
 	for (const QVariant& modelSpec : SourceItem::getListVariant(var))
@@ -220,7 +220,7 @@ QStringList FormulaBase::_getSourceList(const QVariant &var) const
 }
 
 
-bool FormulaBase::_parseFormulaSources(const QVector<FormulaSource*>& formulaSources, FormulaParser::ParsedTerms& parsedTerms, Json::Value& options) const
+bool Formula::_parseFormulaSources(const QVector<FormulaSource*>& formulaSources, FormulaParser::ParsedTerms& parsedTerms, Json::Value& options) const
 {
 	if (parsedTerms.fixedTerms.terms().empty())
 		return true;
@@ -234,7 +234,7 @@ bool FormulaBase::_parseFormulaSources(const QVector<FormulaSource*>& formulaSou
 	return !_rSyntax->hasError();
 }
 
-ListModel *FormulaBase::getModel(const QString &name) const
+ListModel *Formula::getModel(const QString &name) const
 {
 	AnalysisForm	* aform 		= form();
 	ListModel		* model 		= nullptr;
@@ -256,7 +256,7 @@ ListModel *FormulaBase::getModel(const QString &name) const
 	return model;
 }
 
-void FormulaBase::componentComplete()
+void Formula::componentComplete()
 {
 	AnalysisForm* form = qobject_cast<AnalysisForm*>(parent());
 	

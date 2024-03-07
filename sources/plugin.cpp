@@ -12,7 +12,7 @@
 #include "ALTNavigation/altnavcontrol.h"
 #include <qdebug.h>
 #include "jaspdoublevalidator.h"
-#include "formulabase.h"
+#include "formula.h"
 #include "knownissues.h"
 
 
@@ -76,9 +76,6 @@ class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 		ALTNavigation::registerQMLTypes("JASP.Controls");
 		ALTNavControl::ctrl()->enableAlTNavigation(prefModel->ALTNavModeActive());
 		connect(prefModel,	&PreferencesModelBase::ALTNavModeActiveChangedBase,	ALTNavControl::ctrl(),	&ALTNavControl::enableAlTNavigation);
-
-		qmlRegisterType<JASPDoubleValidator>						("JASP.Controls",		1, 0, "JASPDoubleValidator"				);
-		qmlRegisterType<FormulaBase>								("JASP.Controls",		1, 0, "Formula"							);
 
 		if (!KnownIssues::issues())
 			new KnownIssues(this);

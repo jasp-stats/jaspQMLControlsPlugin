@@ -17,7 +17,7 @@
 //
 
 #include "formulasource.h"
-#include "formulabase.h"
+#include "formula.h"
 #include "analysisform.h"
 #include "controls/jasplistcontrol.h"
 #include "controls/sourceitem.h"
@@ -69,7 +69,7 @@ FormulaSource::RandomEffects::RandomEffects(const QVariant &var)
 	}
 }
 
-FormulaSource::FormulaSource(FormulaBase* formula, const QVariant& var) : QObject(formula), _formula(formula)
+FormulaSource::FormulaSource(Formula* formula, const QVariant& var) : QObject(formula), _formula(formula)
 {
 	QMap<QString, QVariant> map;
 	JASPControl* sourceControl = var.value<JASPControl*>();
@@ -144,7 +144,7 @@ FormulaSource::FormulaSource(FormulaBase* formula, const QVariant& var) : QObjec
 	}
 }
 
-QVector<FormulaSource*> FormulaSource::makeFormulaSources(FormulaBase* formula, const QVariant& var)
+QVector<FormulaSource*> FormulaSource::makeFormulaSources(Formula* formula, const QVariant& var)
 {
 	QVector<FormulaSource*> result;
 	QList<QVariant> allFormulaSources = SourceItem::getListVariant(var);

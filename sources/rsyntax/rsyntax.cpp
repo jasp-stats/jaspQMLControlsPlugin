@@ -17,7 +17,6 @@
 //
 
 #include "rsyntax.h"
-#include "appinfo.h"
 #include "analysisform.h"
 #include "log.h"
 #include <QQmlContext>
@@ -91,7 +90,7 @@ QString RSyntax::generateSyntax(bool showAllOptions, bool useHtml) const
 	result += indent + "version = \"" + _form->version() + "\"";
 
 	QStringList formulaSources;
-	for (FormulaBase* formula : _formulas)
+	for (Formula* formula : _formulas)
 	{
 		bool isNull = false;
 		result += "," + newLine + formula->toString(newLine, indent, isNull);
@@ -167,10 +166,10 @@ QString RSyntax::generateWrapper() const
 	result += _form->name() + " <- function(\n";
 	result += FunctionOptionIndent + "data = NULL,\n";
 	result += FunctionOptionIndent + "version = \"" + form()->version() + "\"";
-	for (FormulaBase* formula : _formulas)
+	for (Formula* formula : _formulas)
 		result += ",\n" + FunctionOptionIndent + formula->name() + " = NULL";
 
-	for (FormulaBase* formula : _formulas)
+	for (Formula* formula : _formulas)
 	{
 		QStringList extraOptions = formula->extraOptions();
 		for (const QString& extraOption : extraOptions)
@@ -179,7 +178,7 @@ QString RSyntax::generateWrapper() const
 
 	const Json::Value& boundValues = _form->boundValues();
 	QStringList optionsWithFormula;
-	for (FormulaBase* formula : _formulas)
+	for (Formula* formula : _formulas)
 		optionsWithFormula += formula->extraOptions(true, true);
 
 	for (const std::string& member : boundValues.getMemberNames())
@@ -213,7 +212,7 @@ QString RSyntax::generateWrapper() const
 	+ FunctionLineIndent + "options[[\"data\"]] <- NULL\n"
 	+ FunctionLineIndent + "options[[\"version\"]] <- NULL\n\n";
 
-	for (FormulaBase* formula : _formulas)
+	for (Formula* formula : _formulas)
 	{
 		result += ""
 		+ FunctionLineIndent + "if (!is.null(formula)) {\n"
@@ -251,23 +250,23 @@ QString RSyntax::generateWrapper() const
 
 void RSyntax::setUp()
 {
-	for (FormulaBase* formula : _formulas)
+	for (Formula* formula : _formulas)
 	{
 		formula->setUp();
-		connect(formula,	&FormulaBase::somethingChanged, this, &RSyntax::somethingChanged, Qt::QueuedConnection);
+		connect(formula,	&Formula::somethingChanged, this, &RSyntax::somethingChanged, Qt::QueuedConnection);
 	}
 }
 
-FormulaBase* RSyntax::getFormula(const QString& name) const
+Formula* RSyntax::getFormula(const QString& name) const
 {
-	for (FormulaBase* formula : _formulas)
+	for (Formula* formula : _formulas)
 		if (formula->name() == name)
 			return formula;
 
 	return nullptr;
 }
 
-void RSyntax::addFormula(FormulaBase *formula)
+void RSyntax::addFormula(Formula *formula)
 {
 	if (getFormula(formula->name()))
 		_form->addFormError(tr("Formula with name '%1' is defined twice").arg(formula->name()));
@@ -340,7 +339,7 @@ bool RSyntax::parseRSyntaxOptions(Json::Value &options) const
 		}
 	}
 
-	for (FormulaBase* formula : _formulas)
+	for (Formula* formula : _formulas)
 		formula->parseRSyntaxOptions(options);
 
 	return !hasError();

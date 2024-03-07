@@ -29,6 +29,7 @@
 class JASPDoubleValidator : public QDoubleValidator
 {
 	Q_OBJECT
+	QML_ELEMENT
 
 	Q_PROPERTY(JASP::Inclusive inclusive READ inclusive	WRITE setInclusive	NOTIFY inclusiveChanged	)
 

@@ -73,7 +73,6 @@ class JASPQmlPlugin : public QQmlEngineExtensionPlugin
 										 "JASP",                 // name in QML
 										 "Error: only enums");
 
-		ALTNavigation::registerQMLTypes("JASP.Controls");
 		ALTNavControl::ctrl()->enableAlTNavigation(prefModel->ALTNavModeActive());
 		connect(prefModel,	&PreferencesModelBase::ALTNavModeActiveChangedBase,	ALTNavControl::ctrl(),	&ALTNavControl::enableAlTNavigation);
 

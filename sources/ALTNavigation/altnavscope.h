@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QQuickItem>
 
-#include "altnavtag.h"
+#include "altnavtagbase.h"
 #include "altnavpostfixassignmentstrategy.h"
 
 using AssignmentStrategy = ALTNavPostfixAssignmentStrategy::AssignmentStrategy;

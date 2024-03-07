@@ -1,4 +1,4 @@
-#include "altnavtag.h"
+#include "altnavtagbase.h"
 #include "altnavcontrol.h"
 
 #include <QQmlEngine>

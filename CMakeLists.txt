@@ -97,6 +97,7 @@ target_include_directories(
   ${PROJECT_SOURCE_DIR}/sources
   ${PROJECT_SOURCE_DIR}/sources/controls
   ${PROJECT_SOURCE_DIR}/sources/rsyntax
+  ${PROJECT_SOURCE_DIR}/sources/ALTNavigation
 )
 
 if(BUILDING_JASP)

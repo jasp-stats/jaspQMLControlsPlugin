@@ -79,8 +79,11 @@ void AnalysisForm::runAnalysis()
 	refreshTableViewModels();
 }
 
-QString AnalysisForm::generateWrapper() const
+QString AnalysisForm::generateWrapper(const QString& moduleName, const QString& analysisName, const QString& qmlFileName)
 {
+	if (!_analysis)
+		setAnalysis(new AnalysisBase(this, AppInfo::version, moduleName, analysisName, qmlFileName)); // Create a dummy analyis object
+
 	return _rSyntax->generateWrapper();
 }
 

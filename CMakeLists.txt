@@ -79,6 +79,7 @@ endif()
 
 qt6_add_qml_module(jaspcontrolsplugin
     URI JASP.Controls
+    # STATIC
     OUTPUT_DIRECTORY "JASP/Controls"
     RESOURCE_PREFIX /jasp-stats.org/imports
     PLUGIN_TARGET jaspcontrolsplugin

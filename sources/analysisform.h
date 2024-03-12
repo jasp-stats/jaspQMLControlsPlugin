@@ -84,6 +84,7 @@ public:
 	void					blockValueChangeSignal(bool block, bool notifyOnceUnblocked = true);
 	QString					title()							const	{ return _analysis ? tq(_analysis->title())		: "";		}
 	QString					name()							const	{ return _analysis ? tq(_analysis->name())		: "";		}
+	QString					qmlFileName()					const	{ return _analysis ? tq(_analysis->qmlFileName()) : "";		}
 	QString					module()						const	{ return _analysis ? tq(_analysis->module())	: "";		}
 	QString					version()						const	{ return _analysis ? tq(_analysis->moduleVersion().asString()) : "";	}
 	bool					hasVolatileNotes()				const	{ return _hasVolatileNotes;									}
@@ -142,7 +143,7 @@ public:
 	Q_INVOKABLE void		refreshAnalysis();
 	Q_INVOKABLE void		runAnalysis();
 	Q_INVOKABLE bool		initialized()			const	override	{ return _initialized; }
-	Q_INVOKABLE QString		generateWrapper()		const;
+	Q_INVOKABLE QString		generateWrapper(const QString& moduleName = "", const QString& analysisName = "", const QString& qmlFileName = "");
 	Q_INVOKABLE QString		parseOptions(QString options);
 
 

@@ -242,7 +242,7 @@ QString RSyntax::generateWrapper() const
 	}
 
 	result += ""
-	+ FunctionLineIndent + "return(jaspBase::runWrappedAnalysis(\"" + _analysisFullName() + "\", data, options, version))\n"
+	+ FunctionLineIndent + "return(jaspBase::runWrappedAnalysis(\"" + _analysisFullName() + "\", \"" + _form->qmlFileName() + "\", data, options, version))\n"
 	+ "}";
 
 	return result;

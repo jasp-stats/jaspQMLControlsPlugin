@@ -18,9 +18,11 @@
 
 import QtQuick
 
-Item
+Rectangle
 {
-	id: filterButtonRoot
+	id:				filterButtonRoot
+
+	
 
 	property string	text:				""
 	property string	toolTip:			""
@@ -34,14 +36,13 @@ Item
 	property bool	centerText:			true
 	property bool	iconLeft:			true
 	property bool	isLink:				false
+	property bool	centerTextParent:	false
 
 	property real	_scaledDim:			Math.max(jaspTheme.defaultRectangularButtonHeight, buttonText.height + 2 * buttonPadding)
 	property alias	_pressed:			buttonMouseArea.pressed
-	property alias  color:				rect.color
-	property alias	border:				rect.border
-	property alias	radius:				rect.radius
 	property alias	font:				buttonText.font
 	property alias	icon:				buttonIcon
+	property real	centerParentX:		(parent.width / 2) - x
 
 	//on_ScaledDimChanged: console.log("Button " + text + ": " + _scaledDim + ", text height: " + buttonText.height + ", content height: " + buttonText.contentHeight + ", padding: " + buttonPadding)
 
@@ -52,13 +53,19 @@ Item
 	implicitHeight:						_scaledDim
 	width:								implicitWidth
 	height:								implicitHeight
+	color:								!enabled ? jaspTheme.buttonColorDisabled
+												 : _pressed ? jaspTheme.buttonColorPressed
+															: (filterButtonRoot.hovered || filterButtonRoot.activeFocus)	? jaspTheme.buttonColorHovered
+																															: jaspTheme.buttonColor
+	border.color:						(filterButtonRoot.hovered || selected) ? jaspTheme.buttonBorderColorHovered
+																			   : jaspTheme.buttonBorderColor
+	border.width:						1
 
 
-	// TODO: how to add tooltop
-	//ToolTip.text:						toolTip
-	//ToolTip.timeout:					jaspTheme.toolTipTimeout
-	//ToolTip.delay:						jaspTheme.toolTipDelay
-	//ToolTip.visible:					toolTip !== "" && buttonMouseArea.containsMouse
+	ToolTip.text:						toolTip
+	ToolTip.timeout:					jaspTheme.toolTipTimeout
+	ToolTip.delay:						jaspTheme.toolTipDelay
+	ToolTip.visible:					toolTip !== "" && buttonMouseArea.containsMouse
 
 	Keys.onSpacePressed:				clicked();
 	Keys.onEnterPressed:				clicked();
@@ -66,85 +73,65 @@ Item
 
 	signal clicked()
 
-	Rectangle
+
+
+	MouseArea
 	{
-		id: rect
+		id:							buttonMouseArea
+		anchors.fill:				parent
+		acceptedButtons:			Qt.LeftButton
+		hoverEnabled:				true
+		cursorShape:				Qt.PointingHandCursor
+		onClicked:					filterButtonRoot.clicked();
+		visible:					filterButtonRoot.enabled
+		//propagateComposedEvents:	true
+	}
 
-		color:			!enabled ? jaspTheme.buttonColorDisabled
-								 : _pressed ? jaspTheme.buttonColorPressed
-											: (filterButtonRoot.hovered || filterButtonRoot.activeFocus)	? jaspTheme.buttonColorHovered
-																											: jaspTheme.buttonColor
-		border.color:	(filterButtonRoot.hovered || selected) ? jaspTheme.buttonBorderColorHovered
-															   : jaspTheme.buttonBorderColor
-		border.width:	1
-		width:			parent.width
-		height:			parent.height
+	Image
+	{
+		id:					buttonIcon
+		x:					!filterButtonRoot.showIconAndText 
+							?	(parent.width / 2) - (width / 2) 
+							:	filterButtonRoot.iconLeft 
+							?	filterButtonRoot.buttonWidthPadding 
+							:	parent.width - (width + filterButtonRoot.buttonWidthPadding)
+		y:					(parent.height / 2) - (height / 2)
 
-		MouseArea
-		{
-			id:							buttonMouseArea
-			anchors.fill:				parent
-			acceptedButtons:			Qt.LeftButton
-			hoverEnabled:				true
-			cursorShape:				Qt.PointingHandCursor
-			onClicked:					filterButtonRoot.clicked();
-			visible:					filterButtonRoot.enabled
-			//propagateComposedEvents:	true
-		}
+		width:				Math.min(filterButtonRoot.width - (2 * buttonWidthPadding), height)
+		height:				filterButtonRoot.height - (2 * buttonPadding)
 
-		Image
-		{
-			id: buttonIcon
-			x:	!filterButtonRoot.showIconAndText ?
-					(parent.width / 2) - (width / 2) :
-					filterButtonRoot.iconLeft ?
-						filterButtonRoot.buttonWidthPadding :
-						parent.width - (width + filterButtonRoot.buttonWidthPadding)
+		visible:			filterButtonRoot.iconSource != "" || filterButtonRoot.showIconAndText
+		source:				filterButtonRoot.iconSource
+		sourceSize.width:	width  * 2
+		sourceSize.height:	height * 2
+		mipmap:				true
+		smooth:				true
+	}
 
-			y:	(parent.height / 2) - (height / 2)
+	Text
+	{
+		id: buttonText
+		x:	!filterButtonRoot.centerText 
+			?	filterButtonRoot.buttonPadding
+			:	filterButtonRoot.centerTextParent
+				? (centerParentX - (contentWidth / 2))
+				: ((parent.width / 2) - (contentWidth / 2) )
 
-			width:	Math.min(filterButtonRoot.width - (2 * buttonWidthPadding), height)
-			height: filterButtonRoot.height - (2 * buttonPadding)
+		y:	(parent.height / 2) - (height / 2)
 
-		//	sourceSize.width:	Math.max(96, width  * 2)
-		//	sourceSize.height:	Math.max(96, height * 2)
-
-			visible:	filterButtonRoot.iconSource != "" || filterButtonRoot.showIconAndText
-			source:		filterButtonRoot.iconSource
-			mipmap:		true
-			smooth:		true
-		}
-
-		Text
-		{
-			id: buttonText
-			x:	filterButtonRoot.centerText ?
-					(parent.width / 2) - (contentWidth / 2) :
-					!buttonIcon.visible || !filterButtonRoot.iconLeft ?
-						filterButtonRoot.buttonWidthPadding :
-						buttonIcon.x + buttonIcon.width
+		text:		filterButtonRoot.text
+		wrapMode:	Text.NoWrap
+		visible:	filterButtonRoot.iconSource == "" || filterButtonRoot.showIconAndText
+		color:		isLink
+						? (enabled ? jaspTheme.blueDarker : jaspTheme.textDisabled)
+						: (textColor == "default"
+							? (filterButtonRoot.enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled)
+							: textColor)
 
 
-			y:	(parent.height / 2) - (height / 2)
-
-			text:		filterButtonRoot.text
-			wrapMode:	Text.Wrap
-			visible:	filterButtonRoot.iconSource == "" || filterButtonRoot.showIconAndText
-			color:		isLink
-							? (enabled ? jaspTheme.blueDarker : jaspTheme.textDisabled)
-							: (textColor == "default"
-								? (filterButtonRoot.enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled)
-								: textColor)
-
-
-			font:	isLink ? jaspTheme.fontLink : jaspTheme.font
-			//font.pixelSize: jaspTheme. //Math.max(filterButtonRoot.height * 0.4, Math.min(12 * preferencesModel.uiScale, filterButtonRoot.height - 2))
-
-			//height: contentHeight
-			width:	filterButtonRoot.width - 2 * buttonWidthPadding //implicitWidth //Math.min(implicitWidth, parent.width - (( buttonIcon.visible ? buttonIcon.width : 0 ) + (filterButtonRoot.buttonPadding * 2)))
-
-
-			elide:	Text.ElideMiddle
-		}
+		font:	isLink ? jaspTheme.fontLink : jaspTheme.font
+		width:	filterButtonRoot.width - (!filterButtonRoot.centerText ?	filterButtonRoot.buttonPadding : 0)
+		elide:	Text.ElideMiddle
 	}
 }
+

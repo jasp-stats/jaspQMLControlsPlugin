@@ -24,8 +24,8 @@ TableViewBase
 {
 	id:					tableView
 	focusOnTab:			false
-	implicitWidth:		400
-	implicitHeight:		400
+	implicitWidth:		tableWidth
+	implicitHeight:		tableHeight
 	shouldStealHover:	false
 	defaultValue:		modelType === JASP.JAGSDataInputModel	? "..." : (modelType === JASP.CustomContrasts	? "0" : "1")
 	initialColumnCount: modelType === JASP.MultinomialChi2Model ? 1 : 0

@@ -49,8 +49,9 @@ class JASPControl : public QQuickItem
 	Q_PROPERTY( QString								name					READ name					WRITE setName					NOTIFY nameChanged					)
 	Q_PROPERTY( QString								title					READ title					WRITE setTitle					NOTIFY titleChanged					) //Basically whatever a human sees on their screen when they look at this specific item.
 	Q_PROPERTY( QString								info					READ info					WRITE setInfo					NOTIFY infoChanged					)
+	Q_PROPERTY( QString								infoLabel				READ infoLabel				WRITE setInfoLabel				NOTIFY infoLabelChanged				)
 	Q_PROPERTY( QString								toolTip					READ toolTip				WRITE setToolTip				NOTIFY toolTipChanged				)
-	Q_PROPERTY( QString								helpMD					READ helpMDControl											NOTIFY helpMDChanged				)
+	Q_PROPERTY( QString								helpMD					READ helpMD													NOTIFY helpMDChanged				)
 	Q_PROPERTY( bool								isBound					READ isBound				WRITE setIsBound				NOTIFY isBoundChanged				)
 	Q_PROPERTY( bool								indent					READ indent					WRITE setIndent					NOTIFY indentChanged				)
 	Q_PROPERTY( bool								isDependency			READ isDependency			WRITE setIsDependency			NOTIFY isDependencyChanged			)
@@ -60,7 +61,6 @@ class JASPControl : public QQuickItem
 	Q_PROPERTY( bool								hasError				READ hasError				WRITE setHasError				NOTIFY hasErrorChanged				)
 	Q_PROPERTY( bool								hasWarning				READ hasWarning				WRITE setHasWarning				NOTIFY hasWarningChanged			)
 	Q_PROPERTY( bool								initialized				READ initialized											NOTIFY initializedChanged			)
-	Q_PROPERTY( bool								shouldShowFocus			READ shouldShowFocus		WRITE setShouldShowFocus		NOTIFY shouldShowFocusChanged		)
 	Q_PROPERTY( bool								shouldStealHover		READ shouldStealHover		WRITE setShouldStealHover		NOTIFY shouldStealHoverChanged		)
 	Q_PROPERTY( QQuickItem						*	childControlsArea		READ childControlsArea		WRITE setChildControlsArea											)
 	Q_PROPERTY( JASPControl						*	parentListView			READ parentListViewEx										NOTIFY parentListViewChanged		)
@@ -72,6 +72,7 @@ class JASPControl : public QQuickItem
 	Q_PROPERTY( int									preferredWidth			READ preferredWidth			WRITE setPreferredWidth			NOTIFY preferredWidthChanged		)
 	Q_PROPERTY( int									cursorShape				READ cursorShape			WRITE setCursorShape												)
 	Q_PROPERTY( bool								hovered					READ hovered												NOTIFY hoveredChanged				)
+	Q_PROPERTY( int									alignment				READ alignment				WRITE setAlignment													)
 	Q_PROPERTY( Qt::FocusReason						focusReason				READ getFocusReason																				)
 	Q_PROPERTY( QVariant							depends					READ explicitDepends		WRITE setExplicitDepends		NOTIFY explicitDependsChanged		)
 
@@ -80,6 +81,7 @@ protected:
 	typedef std::set<const JASPControl*>	SetConst;
 
 public:
+
 	// Any addition here should also be added manually to ControlTypeToFriendlyString... I couldnt get this to work with DECLARE_ENUM...
 	enum class ControlType {
 		  DefaultControl
@@ -113,16 +115,20 @@ public:
 	const QString	&	name()						const	{ return _name;						}
 	QString				title()						const	{ return _title;					}
 	QString				info()						const	{ return _info;						}
+	QString				infoLabel()					const	{ return _infoLabel;				}
+	virtual bool		infoAddControlType()		const	{ return  false;					}
+	virtual bool		infoLabelIsHeader()			const	{ return  false;					}
+	virtual bool		infoLabelItalic()			const	{ return  false;					}
+
 	QString				toolTip()					const	{ return _toolTip;					}
-	QString				helpMDControl()				const	{ SetConst tmp; return helpMD(tmp);	} ///< If someone want to get it from qml they can this way.
-	virtual QString		helpMD(SetConst & markdowned, int howDeep = 2, bool asList = false)	const;
+	virtual QString		helpMD(int depth = 0)		const;
+	virtual bool		hasInfo()					const;
 	bool				isBound()					const	{ return _isBound;					}
 	bool				nameIsOptionValue()			const	{ return _nameIsOptionValue;		}
 	bool				indent()					const	{ return _indent;					}
 	bool				isDependency()				const	{ return _isDependency;				}
 	bool				initialized()				const	{ return _initialized;				}
 	bool				initializedWithValue()		const	{ return _initializedWithValue;		}
-	bool				shouldShowFocus()			const	{ return _shouldShowFocus;			}
 	bool				shouldStealHover()			const	{ return _shouldStealHover;			}
 	bool				debug()						const	{ return _debug;					}
 	bool				parentDebug()				const	{ return _parentDebug;				}
@@ -146,6 +152,7 @@ public:
 	int					preferredWidth()			const	{ return _preferredWidth;			}
 	int					cursorShape()				const	{ return _cursorShape;				}
 	bool				hovered()					const;
+	int					alignment()					const	{ return _alignment;				}
 	Qt::FocusReason		getFocusReason()			const	{ return _focusReason;				}
 	bool				dependsOnDynamicComponents() const	{ return _dependsOnDynamicComponents; }
 	const QVariant&		explicitDepends()			const	{ return _explicitDepends;			}
@@ -155,7 +162,7 @@ public:
 	QVector<AnalysisBase::ParentKey>	getParentKeys();
 
 	static QString					ControlTypeToFriendlyString(ControlType controlType);
-	static QList<JASPControl*>		getChildJASPControls(const QQuickItem* item);
+	static QList<JASPControl*>		getChildJASPControls(const QQuickItem* item, bool removeUnecessaryGroups = false);
 
 	virtual void					setUp()										{}
 	void							setInitialized(const Json::Value& value = Json::nullValue);
@@ -185,9 +192,11 @@ public slots:
 	void	setInnerControl(		QQuickItem* innerControl);
 	void	setPreferredHeight(		int preferredHeight, bool isBinding = false);
 	void	setPreferredWidth(		int preferredWidth, bool isBinding = false);
+	void	setAlignment(			int alignment)		{ _alignment = alignment; }
 
 	void	addControlError(			QString message);
 	void	addControlErrorTemporary(	QString message);
+	void	addControlErrorPermanent(	QString message);
 	void	addControlWarning(			QString message);
 	void	addControlWarningTemporary(	QString message);
 	void	clearControlError();
@@ -196,21 +205,20 @@ public slots:
 	void	parentListViewKeyChanged(const QString& oldName, const QString& newName);
 	void	setName(const QString& name);
 
-	GENERIC_SET_FUNCTION(Info					, _info					, infoChanged					, QString		)
 	GENERIC_SET_FUNCTION(ToolTip				, _toolTip				, toolTipChanged				, QString		)
 	GENERIC_SET_FUNCTION(Title					, _title				, titleChanged					, QString		)
 	GENERIC_SET_FUNCTION(IsBound				, _isBound				, isBoundChanged				, bool			)
 	GENERIC_SET_FUNCTION(Indent					, _indent				, indentChanged					, bool			)
 	GENERIC_SET_FUNCTION(IsDependency			, _isDependency			, isDependencyChanged			, bool			)
-	GENERIC_SET_FUNCTION(ShouldShowFocus		, _shouldShowFocus		, shouldShowFocusChanged		, bool			)
 	GENERIC_SET_FUNCTION(ShouldStealHover		, _shouldStealHover		, shouldStealHoverChanged		, bool			)
 	GENERIC_SET_FUNCTION(Background				, _background			, backgroundChanged				, QQuickItem*	)
 	GENERIC_SET_FUNCTION(DependencyMustContain	, _dependencyMustContain, dependencyMustContainChanged	, QStringList	)
 	GENERIC_SET_FUNCTION(ExplicitDepends		, _explicitDepends		, explicitDependsChanged		, QVariant		)
+	GENERIC_SET_FUNCTION(Info					, _info					, infoChanged					, QString		)
+	GENERIC_SET_FUNCTION(InfoLabel				, _infoLabel			, infoLabelChanged				, QString		)
 
 private slots:
-	void	_setFocusBorder();
-	void	_setShouldShowFocus();
+	void	_hightlightBorder();
 	void	_setBackgroundColor();
 	void	_setVisible();
 	void	_hoveredChangedSlot() { emit hoveredChanged(); }
@@ -226,7 +234,6 @@ signals:
 	void	indentChanged();
 	void	isDependencyChanged();
 	void	initializedChanged();
-	void	shouldShowFocusChanged();
 	void	shouldStealHoverChanged();
 	void	debugChanged();
 	void	parentDebugChanged();
@@ -238,6 +245,7 @@ signals:
 	void	backgroundChanged();
 	void	focusIndicatorChanged();
 	void	infoChanged();
+	void	infoLabelChanged();
 	void	toolTipChanged();
 	void	titleChanged();
 	void	helpMDChanged();
@@ -255,23 +263,22 @@ signals:
 	void				requestComputedColumnDestruction(std::string columnName);
 
 protected:
-	void				componentComplete() override;
-	void				_setType();
+	void				componentComplete()									override;
 	void				setCursorShape(int shape);
 	void				setParentDebugToChildren(bool debug);
-	void				focusInEvent(QFocusEvent* event) override;
-	bool				eventFilter(QObject *watched, QEvent *event) override;
+	void				focusInEvent(QFocusEvent* event)					override;
+	bool				eventFilter(QObject *watched, QEvent *event)		override;
 	bool				checkOptionName(const QString& name);
 	void				_addExplicitDependency(const QVariant& depends);
 	bool				dependingControlsAreInitialized();
 	virtual void		_setInitialized(const Json::Value &value);
+	bool				printLabelMD(QStringList& md, int depth)			const;
 
 protected:
 	Set						_depends;
 	ControlType				_controlType;
 	AnalysisForm*			_form						= nullptr;
 	QString					_name,
-							_info,
 							_toolTip,
 							_title,
 							_parentListViewKey;
@@ -285,7 +292,6 @@ protected:
 							_hasWarning					= false,
 							_isDependency				= false,
 							_useControlMouseArea		= true,
-							_shouldShowFocus			= false,
 							_shouldStealHover			= false,
 							_nameIsOptionValue			= false,
 							_hasUserInteractiveValue	= true,
@@ -306,9 +312,13 @@ protected:
 	QStringList				_dependencyMustContain;
 	QQuickItem			*	_mouseAreaObj				= nullptr;
 	int						_cursorShape				= Qt::PointingHandCursor;
+	int						_alignment					= Qt::AlignTop | Qt::AlignLeft;
 	Qt::FocusReason			_focusReason				= Qt::FocusReason::NoFocusReason;
 	bool					_dependsOnDynamicComponents = false;
 	QVariant				_explicitDepends;
+	QString					_info,
+							_infoLabel;
+
 
 	static QMap<QQmlEngine*, QQmlComponent*>		_mouseAreaComponentMap;
 	static QByteArray								_mouseAreaDef;

@@ -49,8 +49,7 @@ VariablesFormBase
 			property bool	removeInvisibles	: false
 
 			property double	_lastListWidth		: 0
-			property bool	_setSize			: (typeof NO_DESKTOP_MODE === "undefined") || !NO_DESKTOP_MODE
-
+			property double _comboBoxHeight		: 0
 
 	Item { id: items }
 
@@ -85,30 +84,26 @@ VariablesFormBase
 			z:				10
 			leftSource:		availableVariablesList
 			rightSource:	allAssignedVariablesList[index]
+			enabled:		allAssignedVariablesList[index].enabled
 
 			Component.onCompleted:
 			{
 				allAssignedVariablesList[index]	.activeFocusChanged		.connect(setIconToLeft	);
 				availableVariablesList			.activeFocusChanged		.connect(setIconToRight	);
-				allAssignedVariablesList[index]	.selectedItemsChanged	.connect(setState		);
-				availableVariablesList			.selectedItemsChanged	.connect(setState		);
 			}
 		}
 	}
-
-	function setInitWidth()
+	
+	function init()
 	{
-		if (!_setSize)
-			return
-
 		for (var i in allJASPControls)
 		{
 			var control					= allJASPControls[i]
 			control.anchors.right		= variablesForm.right;
 			control.visibleChanged.connect(setControlsSize)
 
-			var isControlList		= ((control instanceof VariablesList) || (control instanceof FactorLevelList) || (control instanceof InputListView))
-			var isControlComboBox	= (control instanceof DropDown)
+			var isControlList		= ((control.controlType === JASPControl.VariablesListView) || (control.controlType === JASPControl.FactorLevelList) || (control.controlType === JASPControl.InputListView))
+			var isControlComboBox	= (control.controlType === JASPControl.ComboBox)
 
 			if (isControlList && widthSetByForm(control))
 				// Change the width of the VariablesList only if was not set explicitely
@@ -120,29 +115,18 @@ VariablesFormBase
 			}
 		}
 
-	}
-	
-	function init()
-	{
-		setInitWidth()
 		var countAssignedList = 0
 		var availableDropKeys = []
-
 		for (var key in allAssignedVariablesList)
 		{
 			countAssignedList++;
 			var assignedList = allAssignedVariablesList[key]
 			var assignedDropKeys = [];
 			availableDropKeys.push(assignedList.name);
-			availableVariablesList.draggingChanged.connect(assignedList.setEnabledState);
 			assignedDropKeys.push(availableVariablesList.name);
 
 			for (var key2 in allAssignedVariablesList)
-			{
 				assignedDropKeys.push(allAssignedVariablesList[key2].name);
-				if (assignedList !== allAssignedVariablesList[key2])
-					assignedList.draggingChanged.connect(allAssignedVariablesList[key2].setEnabledState);
-			}
 
 			assignedList.dropKeys = assignedDropKeys;
 		}
@@ -150,24 +134,18 @@ VariablesFormBase
 		availableVariablesList.dropKeys = availableDropKeys
 		setControlsSize()
 		assignButtonRepeater.model = countAssignedList;
+		setTabOrder();
 
-		if (_setSize)
-		{
-			setTabOrder();
-			availableVariablesList.height = Qt.binding(function() { return variablesForm.height; })
-			// Set the width of the VariablesList to listWidth only if it is not set explicitely
-			// Implicitely, the width is set to the parent width.
-			if (widthSetByForm(availableVariablesList))
-				availableVariablesList.width = Qt.binding(function() { return variablesForm.listWidth; })
-		}
+		availableVariablesList.height = Qt.binding(function() { return variablesForm.height; })
+		// Set the width of the VariablesList to listWidth only if it is not set explicitely
+		// Implicitely, the width is set to the parent width.
+		if (widthSetByForm(availableVariablesList))
+			availableVariablesList.width = Qt.binding(function() { return variablesForm.listWidth; })
 
 	}
 
 	function setControlsSize()
 	{
-		if (!_setSize)
-			return
-
 		var firstControl				= true;
 		var minHeightOfAssignedControls = 0;
 		var	changeableHeightControls	= [];
@@ -176,23 +154,21 @@ VariablesFormBase
 		for (var key in allJASPControls)
 		{
 			var control				= allJASPControls[key]
-			var isControlList		= ((control instanceof VariablesList) || (control instanceof FactorLevelList) || (control instanceof InputListView))
 
 			if (removeInvisibles && !control.visible)
-				control.height = 0
+				control.anchors.top			= variablesForm.top;
 			else
 			{
 				control.anchors.top			= anchorTop;
 				control.anchors.topMargin	= firstControl ? 0 : marginBetweenVariablesLists;
 				anchorTop					= control.bottom;
 
-				if (removeInvisibles && control.visible && control.height == 0) // Reset the height of the control when it bocomes visible again
-					control.height = control.maxRows === 1 ? jaspTheme.defaultSingleItemListHeight : jaspTheme.defaultVariablesFormHeight
-
 				if (!firstControl)
 					minHeightOfAssignedControls += marginBetweenVariablesLists;
 
 				firstControl = false;
+
+				var isControlList = ((control.controlType === JASPControl.VariablesListView) || (control.controlType === JASPControl.FactorLevelList) || (control.controlType === JASPControl.InputListView))
 
 				if (!isControlList)
 					minHeightOfAssignedControls += control.height;
@@ -209,7 +185,7 @@ VariablesFormBase
 				}
 			}
 		}
-		
+
 		// Set the height of controls (that have not singleVariable set or where the height is already specifically set)
         // so that the AssignedVariablesList column is as long as the AvailableVariablesList column.
 		if (changeableHeightControls.length > 0)

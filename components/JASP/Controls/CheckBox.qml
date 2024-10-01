@@ -17,8 +17,8 @@
 //
 
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts as L
+import QtQuick.Controls as QTC
+import QtQuick.Layouts	as L
 import JASP.Controls
 
 
@@ -54,7 +54,7 @@ CheckBoxBase
 	function toggle()	{ control.toggle(); }
 
 
-	CheckBox
+	QTC.CheckBox
 	{
 		id:						control
 		padding:				jaspTheme.jaspControlPadding
@@ -64,7 +64,7 @@ CheckBoxBase
 		onCheckedChanged:		checkBox.clickedSlot()
 		Keys.onReturnPressed:	(event)=>	checked = !checked
 		Keys.onEnterPressed:	checked = !checked
-		//TODO: Keys.forwardTo:			forwardKeys ? [checkBox] : [] // If a forward is set on the parent we want to hook on that chain, eg modules menu
+		Keys.forwardTo:			forwardKeys ? [checkBox] : [] // If a forward is set on the parent we want to hook on that chain, eg modules menu
 
 		// When the user clicks on the CheckBox, the clicked signal of the parent (CheckBoxBase) must be emitted.
 		Component.onCompleted: control.clicked.connect(checkBox.clicked)

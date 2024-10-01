@@ -27,7 +27,6 @@ using namespace std;
 ListModelInteractionAssigned::ListModelInteractionAssigned(JASPListControl* listView, bool mustContainLowerTerms, bool addInteractionsByDefault)
 	: ListModelAssignedInterface(listView), InteractionModel ()
 {
-	_copyTermsWhenDropped		= true;
 	_mustContainLowerTerms		= mustContainLowerTerms;
 	_addInteractionsByDefault	= addInteractionsByDefault;
 }
@@ -61,23 +60,11 @@ void ListModelInteractionAssigned::initTerms(const Terms &terms, const RowContro
 	ListModelAssignedInterface::initTerms(interactionTerms(), allValuesMap, reInit);
 }
 
-Terms ListModelInteractionAssigned::filterTerms(const Terms& terms, const QStringList& filters)
-{
-	Terms result;
-	if (filters.contains("noInteraction"))
-	{
-		result.add(_fixedFactors);
-		result.add(_randomFactors);
-		result.add(_covariates);
-	}
-	else
-		result = terms;
-
-	return ListModelAssignedInterface::filterTerms(result, filters);
-}
-
 void ListModelInteractionAssigned::removeTerms(const QList<int> &indices)
 {
+	if(!indices.count())
+		return;
+	
 	Terms toRemove;
 
 	for (int i : indices)
@@ -90,19 +77,6 @@ void ListModelInteractionAssigned::removeTerms(const QList<int> &indices)
 	removeInteractionTerms(toRemove);
 
 	setTerms();
-}
-
-Terms ListModelInteractionAssigned::termsFromIndexes(const QList<int> &indexes) const
-{
-	Terms result;
-	for (int i : indexes)
-	{
-		int index = i;
-		if (index < rowCount())
-			result.add(terms().at(size_t(index)));
-	}
-	
-	return result;
 }
 
 void ListModelInteractionAssigned::_addTerms(const Terms& terms, bool combineWithExistingTerms)
@@ -130,10 +104,7 @@ void ListModelInteractionAssigned::_addTerms(const Terms& terms, bool combineWit
 				covariates.add(term);
 		}
 		else
-		{
-			if (!_interactionTerms.contains(term))
 				others.add(term);
-		}
 	}
 			
 	if (fixedFactors.size() > 0)
@@ -183,21 +154,14 @@ QString ListModelInteractionAssigned::getItemType(const Term &term) const
 	return type;
 }
 
-Terms ListModelInteractionAssigned::canAddTerms(const Terms& terms) const
-{
-	Q_UNUSED(terms);
-
-	return terms;
-}
-
-
 Terms ListModelInteractionAssigned::addTerms(const Terms& terms, int , const RowControlsValues&)
 {
 	if (terms.size() == 0)
 		return Terms();
 	
 	Terms dropped;
-	dropped.setSortParent(availableModel()->allTerms());
+	if (availableModel())
+		dropped.setSortParent(availableModel()->allTerms());
 	dropped.set(terms);
 
 	Terms newTerms = dropped.combineTerms(JASP::CombinationType::CombinationCross);

@@ -36,6 +36,7 @@ Rectangle
 	property var control
 	property bool tmp			: false
 	property bool warning		: false
+	property bool closeable		: true
 	property var form
 	property var container		: parent
 	property int containerWidth	: container ? (container === form ? form.availableWidth : container.width) : 0
@@ -45,7 +46,7 @@ Rectangle
 
 	onContainerWidthChanged:	if (visible)				showMessage()
 	onControlChanged:			if (!control)				controlErrorMessage.opacity = 0
-	onVisibleChanged:			if (!visible && control)
+	onVisibleChanged:			if (!visible && opacity === 0 && control)
 	{
 		control.hasError	= false;
 		control.hasWarning	= false;
@@ -159,6 +160,7 @@ Rectangle
 
 	CrossButton
 	{
+		visible: closeable
 		onCrossClicked:
 		{
 			controlErrorMessage.opacity = 0

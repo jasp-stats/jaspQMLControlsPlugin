@@ -42,11 +42,8 @@ void ListModelLayersAssigned::initLayers(const std::vector<std::vector<std::stri
 
 	_setTerms();
 
-	if (availableModel() != nullptr)
-	{
-		if (!_copyTermsWhenDropped)
-			availableModel()->removeTermsInAssignedList();
-	}
+	if (availableModel())
+		availableModel()->removeTermsInAssignedList();
 	
 	endResetModel();
 }
@@ -95,7 +92,11 @@ void ListModelLayersAssigned::_setTerms()
 	{
 		newTerms.add(tr("Layer %1").arg(layer));
 		for (const QString& variable : variables)
-			newTerms.add(variable);
+		{
+			Term term(variable);
+			term.setType(columnType::nominal);
+			newTerms.add(term);
+		}
 		layer++;
 	}
 
@@ -104,27 +105,13 @@ void ListModelLayersAssigned::_setTerms()
 	ListModel::_setTerms(newTerms);
 }
 
-Terms ListModelLayersAssigned::termsFromIndexes(const QList<int> &indexes) const
-{
-	Terms terms;
-
-	for (int index : indexes)
-	{
-		int indexInLayer = -1;
-		int layer = _getLayer(index, indexInLayer);
-		if (layer < _variables.length())
-		{
-			if (indexInLayer >= 0 && indexInLayer < _variables[layer].length())
-				terms.add(Term(_variables[layer][indexInLayer]));
-		}
-	}
-	
-	return terms;
-}
-
 Terms ListModelLayersAssigned::addTerms(const Terms& terms, int dropItemIndex, const RowControlsValues&)
 {
 	Terms result;
+	
+	if(!terms.size())
+		return result;
+	
 	beginResetModel();
 	
 	int layer = _variables.length();
@@ -214,6 +201,9 @@ void ListModelLayersAssigned::moveTerms(const QList<int> &indexes, int dropItemI
 
 void ListModelLayersAssigned::removeTerms(const QList<int> &indexes)
 {
+	if(!indexes.count())
+		return;
+	
 	beginResetModel();
 	
 	QList<int> sortedIndexes = indexes;
@@ -273,7 +263,7 @@ QVariant ListModelLayersAssigned::data(const QModelIndex &index, int role) const
 		if (layer >= 0 && layer < _variables.length() && indexInLayer >= 0 && indexInLayer < _variables[layer].length())
 		{
 			QString variable = _variables[layer][indexInLayer];
-			result = requestInfo(VariableInfo::VariableTypeName, variable).toString();
+			result = columnTypeToQString(getVariableType(variable));
 		}
 	}
 	else

@@ -20,7 +20,7 @@
 #include "analysisform.h"
 #include "boundcontrols/boundcontrolsourcetextarea.h"
 #include "boundcontrols/boundcontroljagstextarea.h"
-#include "boundcontrols/boundcontrollavaantextarea.h"
+#include "boundcontrols/boundcontrolrlangtextarea.h"
 #include "boundcontrols/boundcontrolcsemtextarea.h"
 
 
@@ -52,11 +52,12 @@ void TextAreaBase::setUp()
 {
 	switch (_textType)
 	{
-	case JASP::TextType::TextTypeSource:	_boundControl = new BoundControlSourceTextArea(this);	break;
-	case JASP::TextType::TextTypeLavaan:	_boundControl = new BoundControlLavaanTextArea(this);	break;
-	case JASP::TextType::TextTypeJAGSmodel:	_boundControl = new BoundControlJAGSTextArea(this);		break;
-	case JASP::TextType::TextTypeCSem:		_boundControl = new BoundControlCSemTextArea(this);		break;
-	default:								_boundControl = new BoundControlTextArea(this);			break;
+	case JASP::TextType::TextTypeSource:		_boundControl = new BoundControlSourceTextArea(this);	break;
+	case JASP::TextType::TextTypeLavaan:		_boundControl = new BoundControlRlangTextArea(this);	break;
+	case JASP::TextType::TextTypeRcode:			_boundControl = new BoundControlRlangTextArea(this);	break;
+	case JASP::TextType::TextTypeJAGSmodel:		_boundControl = new BoundControlJAGSTextArea(this);		break;
+	case JASP::TextType::TextTypeCSem:			_boundControl = new BoundControlCSemTextArea(this);		break;
+	default:									_boundControl = new BoundControlTextArea(this);			break;
 	}
 
 	JASPListControl::setUp();
@@ -72,7 +73,7 @@ void TextAreaBase::setUp()
 
 	//If "rowCount" changes on VariableInfo it means a column has been added or removed, this means the model should be reencoded and checked
 	//Fixes https://github.com/jasp-stats/jasp-issues/issues/2462
-	connect(VariableInfo::info(),	&VariableInfo::rowCountChanged,		this,		&TextAreaBase::checkSyntaxHandler);
+	connect(VariableInfo::info(),	&VariableInfo::rowCountChanged,		this,		&TextAreaBase::checkSyntaxMaybeHandler);
 
 	//Also do it on request of course ;)
 	connect(this,					&TextAreaBase::applyRequest,		this,		&TextAreaBase::checkSyntaxHandler);
@@ -105,7 +106,36 @@ void TextAreaBase::setText(const QString& text)
 
 void TextAreaBase::termsChangedHandler()
 {
-	if (_textType == JASP::TextType::TextTypeLavaan || _textType == JASP::TextType::TextTypeCSem && form() && initialized())
-		form()->refreshAnalysis();
+	JASPListControl::termsChangedHandler();
 
+	if ((_textType == JASP::TextType::TextTypeLavaan || _textType == JASP::TextType::TextTypeCSem) && form() && initialized())
+		form()->refreshAnalysis();
+}
+
+void TextAreaBase::_setInitialized(const Json::Value &value)
+{
+	// The text in the TextArea is not stored in the bound value (it is stored only after an applyRequest call)
+	// So if the TextArea is re-initialized, it will lose its current value.
+	// This is the case when a TextArea is used in a TabView: when adding or removing a tab, the TabView may re-initialized its controls.
+	// So in this case, just keep the current text, and reset it after the initialization
+	QString currentText = text();
+	bool keepText = initialized();
+
+	JASPListControl::_setInitialized(value);
+
+	if (keepText)
+		setText(currentText);
+}
+
+bool TextAreaBase::autoCheckSyntax() const
+{
+	return _autoCheckSyntax;
+}
+
+void TextAreaBase::setAutoCheckSyntax(bool newAutoCheckSyntax)
+{
+	if (_autoCheckSyntax == newAutoCheckSyntax)
+		return;
+	_autoCheckSyntax = newAutoCheckSyntax;
+	emit autoCheckSyntaxChanged();
 }

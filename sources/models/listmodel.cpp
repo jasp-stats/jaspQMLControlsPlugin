@@ -49,6 +49,8 @@ QHash<int, QByteArray> ListModel::roleNames() const
 		roles[SelectedRole]					= "selected";
 		roles[SelectableRole]				= "selectable";
 		roles[ColumnTypeRole]				= "columnType";
+		roles[ColumnPreviewRole]			= "preview";
+		roles[ColumnRealTypeRole]			= "columnRealType";
 		roles[ColumnTypeIconRole]			= "columnTypeIcon";
 		roles[ColumnTypeDisabledIconRole]	= "columnTypeDisabledIcon";
 		roles[NameRole]						= "name";
@@ -97,6 +99,39 @@ void ListModel::_connectAllSourcesControls()
 {
 	for (SourceItem* sourceItem : listView()->sourceItems())
 		_connectSourceControls(sourceItem);
+}
+
+void ListModel::_setAllowedType(Term& term) const
+{
+	columnType type = term.type();
+	if (type != columnType::unknown && !_listView->isTypeAllowed(type))
+		term.setType(_listView->defaultType());
+}
+
+Term ListModel::_checkTermType(const Term &term) const
+{
+	Term checkedTerm(term);
+	_setAllowedType(checkedTerm);
+
+	return checkedTerm;
+}
+
+Terms ListModel::_checkTermsTypes(const std::vector<Term>& terms) const
+{
+	Terms checkedTerms;
+	for (const Term& term : terms)
+		checkedTerms.add(_checkTermType(term));
+
+	return checkedTerms;
+}
+
+
+Terms ListModel::_checkTermsTypes(const Terms& terms) const
+{
+	Terms checkedTerms = terms; // Keep terms properties
+	for (Term& term : checkedTerms)
+		_setAllowedType(term);
+	return checkedTerms;
 }
 
 void ListModel::_connectSourceControls(SourceItem* sourceItem)
@@ -245,12 +280,61 @@ QStringList ListModel::termsTypes()
 
 	for (const Term& term : terms())
 	{
-		columnType type = columnType(requestInfo(VariableInfo::VariableType, term.asQString()).toInt());
+		columnType type = term.type();
 		if (type != columnType::unknown)
 			types.insert(tq(columnTypeToString(type)));
 	}
 
 	return types.values();
+}
+
+void ListModel::setVariableType(int ind, columnType type)
+{
+	if (ind < 0 || ind > _terms.size())
+		return;
+
+	Term& term = _terms.at(ind);
+	if (term.type() == type)
+		return;
+
+	term.setType(type);
+
+	emit dataChanged(index(ind, 0), index(ind, 0));
+	emit columnTypeChanged(term);
+}
+
+columnType ListModel::getVariableType(const QString& name) const
+{
+	int i = terms().indexOf(name);
+	if (i >= 0)
+		return terms().at(i).type();
+
+	return (columnType)requestInfo(VariableInfo::VariableType, name).toInt();
+}
+
+columnType ListModel::getVariableRealType(const QString& name) const
+{
+	return (columnType)requestInfo(VariableInfo::VariableType, name).toInt();
+}
+
+QString ListModel::getVariablePreview(const QString& name) const
+{
+	columnType	chosenType	= getVariableType(name),
+				realType	= getVariableRealType(name);
+	
+	if(chosenType == realType)
+		return "";
+	
+	VariableInfo::InfoType		previewType;
+	
+	switch(chosenType)
+	{
+	default:					previewType = VariableInfo::PreviewScale;		break;
+	case columnType::ordinal:	previewType	= VariableInfo::PreviewOrdinal;		break;
+	case columnType::nominal:	previewType	= VariableInfo::PreviewNominal;		break;
+	}
+	
+	return requestInfo(previewType, name).toString();
 }
 
 int ListModel::searchTermWith(QString searchString)
@@ -283,13 +367,6 @@ int ListModel::searchTermWith(QString searchString)
 	return result;
 }
 
-void ListModel::_addSelectedItemType(int _index)
-{
-	QString type = data(index(_index, 0), ListModel::ColumnTypeRole).toString();
-	if (!type.isEmpty())
-		_selectedItemsTypes.insert(type);
-}
-
 void ListModel::selectItem(int _index, bool _select)
 {
 	bool changed = false;
@@ -305,7 +382,6 @@ void ListModel::selectItem(int _index, bool _select)
 				else if (_selectedItems[i] > _index)
 				{
 					_selectedItems.insert(i, _index);
-					_addSelectedItemType(_index);
 					changed = true;
 					break;
 				}
@@ -313,7 +389,6 @@ void ListModel::selectItem(int _index, bool _select)
 			if (i == _selectedItems.length())
 			{
 				_selectedItems.append(_index);
-				_addSelectedItemType(_index);
 				changed = true;
 			}
 		}
@@ -321,16 +396,7 @@ void ListModel::selectItem(int _index, bool _select)
 	else
 	{
 		if (_selectedItems.removeAll(_index) > 0)
-		{
-			_selectedItemsTypes.clear();
-			for (int i : _selectedItems)
-			{
-				QString type = data(index(i, 0), ListModel::ColumnTypeRole).toString();
-				if (!type.isEmpty())
-					_selectedItemsTypes.insert(type);
-			}
 			changed = true;
-		}
 	}
 
 	if (changed)
@@ -345,7 +411,6 @@ void ListModel::clearSelectedItems(bool emitSelectedChange)
 	QList<int> selected = _selectedItems;
 
 	_selectedItems.clear();
-	_selectedItemsTypes.clear();
 
 	for (int i : selected)
 		emit dataChanged(index(i,0), index(i,0), { ListModel::SelectedRole });
@@ -368,15 +433,11 @@ void ListModel::selectAllItems()
 	if (nbTerms == 0) return;
 
 	_selectedItems.clear();
-	_selectedItemsTypes.clear();
 
 	for (int i = 0; i < nbTerms; i++)
 	{
 		if (data(index(i, 0), ListModel::SelectableRole).toBool())
-		{
 			_selectedItems.append(i);
-			_addSelectedItemType(i);
-		}
 	}
 
 	emit dataChanged(index(0, 0), index(nbTerms - 1, 0), { ListModel::SelectedRole });
@@ -401,29 +462,44 @@ QVariant ListModel::data(const QModelIndex &index, int role) const
 	if (row_t >= myTerms.size())
 		return QVariant();
 
+	const Term& term = myTerms.at(row_t);
+
 	switch (role)
 	{
 	case Qt::DisplayRole:
-	case ListModel::NameRole:			return QVariant(myTerms.at(row_t).asQString());
-	case ListModel::SelectableRole:		return !myTerms.at(row_t).asQString().isEmpty();
+	case ListModel::NameRole:			return QVariant(term.asQString());
+	case ListModel::SelectableRole:		return !term.asQString().isEmpty() && term.isDraggable();
 	case ListModel::SelectedRole:		return _selectedItems.contains(row);
+	case ListModel::TypeRole:			return listView()->containsVariables() ? "variable" : "";
+	
 	case ListModel::RowComponentRole:
 	{
-		QString term = myTerms.at(row_t).asQString();
-		return _rowControlsMap.contains(term) ? QVariant::fromValue(_rowControlsMap[term]->getRowObject()) : QVariant();
+		QString termStr = term.asQString();
+		return _rowControlsMap.contains(termStr) ? QVariant::fromValue(_rowControlsMap[termStr]->getRowObject()) : QVariant();
 	}
-	case ListModel::TypeRole:			return listView()->containsVariables() ? "variable" : "";
+		
+	case ListModel::ColumnPreviewRole:
+		return (!listView()->containsVariables() || term.size() != 1) ? "" : getVariablePreview(term.asQString());
+	
 	case ListModel::ColumnTypeRole:
+	case ListModel::ColumnRealTypeRole:
 	case ListModel::ColumnTypeIconRole:
 	case ListModel::ColumnTypeDisabledIconRole:
-	{
-		const Term& term = myTerms.at(row_t);
-		if (!listView()->containsVariables() || term.size() != 1)	return "";
-		if (role == ListModel::ColumnTypeRole)						return requestInfo(VariableInfo::VariableTypeName, term.asQString());
-		else if (role == ListModel::ColumnTypeIconRole)				return requestInfo(VariableInfo::VariableTypeIcon, term.asQString());
-		else if (role == ListModel::ColumnTypeDisabledIconRole)		return requestInfo(VariableInfo::VariableTypeDisabledIcon, term.asQString());
-		break;
-	}
+		if (!listView()->containsVariables() || term.size() != 1)	
+			return "";
+		else
+		{
+			columnType	colType		= getVariableType(term.asQString()),
+						colRealType = getVariableRealType(term.asQString());
+			
+			switch(role)
+			{
+			case ListModel::ColumnTypeRole:								return columnTypeToQString(colType);
+			case ListModel::ColumnRealTypeRole:							return columnTypeToQString(colRealType);
+			case ListModel::ColumnTypeIconRole:							return colType == columnType::unknown ? "" : (VariableInfo::info()->getIconFile(colType, colType == colRealType ? VariableInfo::DefaultIconType : VariableInfo::TransformedIconType));
+			case ListModel::ColumnTypeDisabledIconRole:					return colType == columnType::unknown ? "" : (VariableInfo::info()->getIconFile(colType, VariableInfo::DisabledIconType));
+			}
+		}
 	}
 
 	return QVariant();
@@ -438,11 +514,10 @@ Terms ListModel::filterTerms(const Terms& terms, const QStringList& filters)
 {
 	if (filters.empty())	return terms;
 
-	QStringList values = terms.asQList(); // Use QStringList instead of Terms type because Terms eliminates automatically double values and that can generate mistakes expecially when indexes are used with the discard predicate.
+	Terms result = terms;
 
 	const static QString typeIs = "type=";
 	const static QString controlIs = "control=";
-	const static QString discardIs = "discardIndex=";
 
 	QString useTheseVariableTypes, useThisControl, discardIndexes;
 
@@ -450,61 +525,23 @@ Terms ListModel::filterTerms(const Terms& terms, const QStringList& filters)
 	{
 		if (filter.startsWith(typeIs))		useTheseVariableTypes	= filter.right(filter.length() - typeIs.length());
 		if (filter.startsWith(controlIs))	useThisControl			= filter.right(filter.length() - controlIs.length());
-		if (filter.startsWith(discardIs))	discardIndexes			= filter.right(filter.length() - discardIs.length());
 	}
 
 	if (!useThisControl.isEmpty())
 	{
-		QStringList controlValues;
-		for (const QString& value : values)
+		Terms controlTerms;
+		for (const Term& term : result)
 		{
-			RowControls* rowControls = _rowControlsMap.value(value);
+			RowControls* rowControls = _rowControlsMap.value(term.asQString());
 			if (rowControls)
 			{
 				JASPControl* control = rowControls->getJASPControl(useThisControl);
 
-				if (control)	controlValues.append(control->property("value").toString());
+				if (control)	controlTerms.add(control->property("value").toString());
 				else			Log::log() << "Could not find control " << useThisControl << " in list view " << name() << std::endl;
 			}
 		}
-		values = controlValues;
-	}
-
-	if (!discardIndexes.isEmpty())
-	{
-		std::vector<bool> discarded(values.size(), false );
-		QStringList indexes = discardIndexes.split("|");
-		for (const QString& index : indexes)
-		{
-			QString cleanIndex = index;
-			if (index.contains('-'))
-			{
-				bool lowOk = false, highOk = false;
-				int low = index.first(index.indexOf('-')).toInt(&lowOk);
-				int high = index.sliced(index.indexOf('-') + 1).toInt(&highOk);
-				if (lowOk && highOk && low >= 0 && high > low)
-				{
-					for (int i = low; i <= high; i++)
-						if (i < discarded.size())
-							discarded[i] = true;
-				}
-			}
-			else
-			{
-				bool ok = false;
-				int i = index.toInt(&ok);
-				if (ok && i >= 0 && i < discarded.size())
-					discarded[i] = true;
-			}
-		}
-
-		QStringList selectedValues;
-		for (int i = 0; i < discarded.size(); i++)
-		{
-			if (!discarded[i])
-				selectedValues.append(values.at(i));
-		}
-		values = selectedValues;
+		result = controlTerms;
 	}
 
 	if (!useTheseVariableTypes.isEmpty())
@@ -519,31 +556,29 @@ Terms ListModel::filterTerms(const Terms& terms, const QStringList& filters)
 				types.push_back(type);
 		}
 
-		QStringList rightValues;
-		for (const QString& value : values)
+		Terms rightValues;
+		for (const Term& term : result)
 		{
-			columnType type = columnType(requestInfo(VariableInfo::VariableType, value).toInt());
-			if (types.contains(type))
-				rightValues.append(value);
+			if (types.contains(term.type()))
+				rightValues.add(term);
 		}
-		values = rightValues;
+		result = rightValues;
 	}
 
 	if (filters.contains("levels"))
 	{
-		QStringList allLabels;
-		for (const QString& value : values)
+		Terms allLabels;
+		for (const Term& term : result)
 		{
-			QStringList labels = requestInfo(VariableInfo::Labels, value).toStringList();
-			if (labels.size() > 0)	allLabels.append(labels);
-			else					allLabels.append(value);
+			Terms labels = requestInfo(VariableInfo::Labels, term.asQString()).toStringList();
+			if (labels.size() > 0)	allLabels.add(labels);
+			else					allLabels.add(term);
 		}
 
-		values = allLabels;
+		result = allLabels;
 	}
 
-
-	return values;
+	return result;
 }
 
 Terms ListModel::termsEx(const QStringList &filters)
@@ -579,24 +614,17 @@ void ListModel::sourceNamesChanged(QMap<QString, QString> map)
 		emit namesChanged(changedNamesMap);
 }
 
-int ListModel::sourceColumnTypeChanged(QString name)
+int ListModel::sourceColumnTypeChanged(Term sourceTerm)
 {
-	int i = terms().indexOf(name);
+	int i = _terms.indexOf(sourceTerm);
 	if (i >= 0)
 	{
+		Term& term = _terms.at(i);
+		term.setType(sourceTerm.type());
 		QModelIndex ind = index(i, 0);
 
-		//keep selected item types up to date
-		if(_selectedItems.contains(i))
-		{
-			_selectedItemsTypes.clear();
-			for(int item : _selectedItems)
-				_addSelectedItemType(item);
-			emit selectedItemsTypesChanged();
-		}
-
 		emit dataChanged(ind, ind, {ListModel::ColumnTypeRole, ListModel::ColumnTypeIconRole, ListModel::ColumnTypeDisabledIconRole});
-		emit columnTypeChanged(name);
+		emit columnTypeChanged(term);
 	}
 
 	return i;
@@ -671,6 +699,11 @@ void ListModel::sourceColumnsChanged(QStringList columns)
 
 	if (changedColumns.size() > 0)
 	{
+		for (const QString& col : changedColumns)
+		{
+			int i = terms().indexOf(col);
+			emit dataChanged(index(1,0), index(i,0));
+		}
 		emit columnsChanged(changedColumns);
 
 		if (listView()->isBound())
@@ -693,13 +726,14 @@ void ListModel::_setTerms(const Terms &terms, const Terms& parentTerms)
 
 void ListModel::_setTerms(const std::vector<Term> &terms)
 {
+	_checkTermsTypes(terms);
 	_terms.set(terms);
 	setUpRowControls();
 }
 
 void ListModel::_setTerms(const Terms &terms)
 {
-	_terms.set(terms);
+	_terms.set(_checkTermsTypes(terms));
 	setUpRowControls();
 }
 
@@ -729,18 +763,18 @@ void ListModel::_removeLastTerm()
 
 void ListModel::_addTerms(const Terms &terms)
 {
-	_terms.add(terms);
+	_terms.add(_checkTermsTypes(terms));
 	setUpRowControls();
 }
 
-void ListModel::_addTerm(const QString &term, bool isUnique)
+void ListModel::_addTerm(const Term &term, bool isUnique)
 {
-	_terms.add(term, isUnique);
+	_terms.add(_checkTermType(term), isUnique);
 	setUpRowControls();
 }
 
 void ListModel::_replaceTerm(int index, const Term &term)
 {
-	_terms.replace(index, term);
+	_terms.replace(index, _checkTermType(term));
 	setUpRowControls();
 }

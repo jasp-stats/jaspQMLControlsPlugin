@@ -10,6 +10,7 @@ TextField
 	property string	filter		: "*"
 	property alias	buttonText	: button.text
 	property bool	directory	: false
+	property bool	multiple	: false
 
 	implicitWidth				: button.x + button.width
 
@@ -35,7 +36,7 @@ TextField
 			else if (selector.save)
 				browsedFile = messages.browseSaveFileDocumentsQML(selector.caption, selector.filter)
 			else
-				browsedFile = messages.browseOpenFileDocumentsQML(selector.caption, selector.filter)
+				browsedFile = messages.browseOpenFileDocumentsQML(selector.caption, selector.filter, multiple)
 
 			selector.value = browsedFile;
 			selector.doEditingFinished();

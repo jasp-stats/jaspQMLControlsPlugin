@@ -20,7 +20,8 @@ import JASP.Controls
 
 VariablesList
 {
-	listViewType:	JASP.AvailableVariables
-	showSortMenu:	true
-	isBound:		false
+	listViewType:		JASP.AvailableVariables
+	showSortMenu:		true
+	isBound:			false
+	allowTypeChange:	false
 }

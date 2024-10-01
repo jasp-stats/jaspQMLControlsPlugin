@@ -41,9 +41,7 @@ ListModelCustomContrasts::ListModelCustomContrasts(TableViewBase *parent) : List
 	connect(VariableInfo::info(),	&VariableInfo::labelsChanged,		this,		&ListModelCustomContrasts::sourceLabelsChanged);
 	connect(VariableInfo::info(),	&VariableInfo::labelsReordered,		this,		&ListModelCustomContrasts::sourceLabelsReordered);
 	connect(VariableInfo::info(),	&VariableInfo::columnsChanged,		this,		&ListModelCustomContrasts::sourceColumnsChanged);
-	QAbstractItemModel* providerModel = dynamic_cast<QAbstractItemModel*>(infoProvider());
-	if (providerModel)
-		connect(providerModel,	&QAbstractItemModel::modelReset	,		this,		&ListModelCustomContrasts::sourceTermsReset);
+	connect(infoProviderModel(),	&QAbstractItemModel::modelReset	,	this,		&ListModelCustomContrasts::sourceTermsReset);
 }
 
 void ListModelCustomContrasts::sourceTermsReset()
@@ -51,28 +49,27 @@ void ListModelCustomContrasts::sourceTermsReset()
 	_resetValuesEtc();
 }
 
-QStringList ListModelCustomContrasts::_getVariables()
+Terms ListModelCustomContrasts::_getVariables()
 {
 	if (!_colName.isEmpty())
 		return Term::readTerm(_colName).components();
 	else
-		return getSourceTerms().asQList();
+		return getSourceTerms();
 }
 
-void ListModelCustomContrasts::getVariablesAndLabels(QStringList& variables, QVector<QVector<QVariant> >& allLabels)
+void ListModelCustomContrasts::getVariablesAndLabels(Terms& variables, QVector<QVector<QVariant> >& allLabels)
 {
 	variables = _getVariables();
 
 	// First set all combinations of all labels in values
-	for (const QString& newVariable : variables)
+	for (const Term& newVariable : variables)
 	{
 		QList<QString> labels;
-		if (_factors.contains(newVariable))
-			labels = _factors[newVariable];
+		if (_factors.contains(newVariable.asQString()))
+			labels = _factors[newVariable.asQString()];
 		else
 		{
-			columnType colType = columnType(requestInfo(VariableInfo::VariableType, newVariable).toInt());
-			if (colType == columnType::scale)
+			if (newVariable.type() == columnType::scale)
 			{
 				if (_scaleFactor == 0)
 					labels = {"0"};
@@ -84,7 +81,7 @@ void ListModelCustomContrasts::getVariablesAndLabels(QStringList& variables, QVe
 				}
 			}
 			else
-				labels = requestInfo(VariableInfo::Labels, newVariable).toStringList();
+				labels = requestInfo(VariableInfo::Labels, newVariable.asQString()).toStringList();
 		}
 
 		QVector<QVector<QVariant> > copyAllLabels = allLabels;
@@ -109,7 +106,7 @@ void ListModelCustomContrasts::getVariablesAndLabels(QStringList& variables, QVe
 
 void ListModelCustomContrasts::_resetValuesEtc()
 {
-	QStringList newVariables;
+	Terms newVariables;
 	QVector<QVector<QVariant> > newValues;
 
 	getVariablesAndLabels(newVariables, newValues);
@@ -120,7 +117,7 @@ void ListModelCustomContrasts::_resetValuesEtc()
 
 	// Maps the new variables with the old ones (if they existed)
 	QMap<int, int> variablesMap;
-	for (int i = 0; i < newVariables.length(); i++)
+	for (int i = 0; i < newVariables.size(); i++)
 		variablesMap[i] = _tableTerms.variables.indexOf(newVariables.at(i));
 
 	int newMaxRows = newValues.length() > 0 ? newValues[0].length() : 0;
@@ -133,7 +130,7 @@ void ListModelCustomContrasts::_resetValuesEtc()
 		// For this, for each row, we first build a boolean matrix that tells where the labels in the new values are found in the old values.
 		QVector<QVector<bool> > allBools;
 
-		for (int col = 0; col < newVariables.length(); col++)
+		for (int col = 0; col < newVariables.size(); col++)
 		{
 			if (variablesMap[col] >= 0 && variablesMap[col] < _tableTerms.values.length())
 			{
@@ -188,7 +185,7 @@ void ListModelCustomContrasts::_resetValuesEtc()
 		for (int i = 0; i < nbContrast; i++)
 		{
 			QVector<QVariant> contrasts;
-			int oldContrastIndex = _tableTerms.variables.length() + i;
+			int oldContrastIndex = _tableTerms.variables.size() + i;
 
 			if (_tableTerms.values.length() <= oldContrastIndex)
 			{
@@ -229,19 +226,19 @@ QString ListModelCustomContrasts::getDefaultColName(size_t index) const
 	int indexi = int(index);
 
 	if (indexi < _tableTerms.variables.size())
-		return _tableTerms.variables.at(indexi);
+		return _tableTerms.variables.at(indexi).asQString();
 	else
 		return tr("Contrast %1").arg(indexi - _tableTerms.variables.size() + 1);
 }
 
 void ListModelCustomContrasts::reset()
 {
-	if (_tableTerms.values.length() <= _tableTerms.variables.length() + _tableView->initialColumnCount())
+	if (_tableTerms.values.length() <= _tableTerms.variables.size() + _tableView->initialColumnCount())
 		return;
 
 	beginResetModel();
 
-	_tableTerms.values.erase(_tableTerms.values.begin() + _tableTerms.variables.length() + _tableView->initialColumnCount(), _tableTerms.values.end());
+	_tableTerms.values.erase(_tableTerms.values.begin() + _tableTerms.variables.size() + _tableView->initialColumnCount(), _tableTerms.values.end());
 	_tableTerms.colNames.erase(_tableTerms.colNames.begin() + _tableTerms.values.length(), _tableTerms.colNames.end());
 
 	endResetModel();
@@ -265,9 +262,9 @@ void ListModelCustomContrasts::setup()
 
 QString ListModelCustomContrasts::getItemInputType(const QModelIndex &index) const
 {
-	if (index.column() >= _tableTerms.variables.length())
+	if (index.column() >= _tableTerms.variables.size())
 	{
-		if (_tableView->itemType() == JASP::ItemType::Double)	return "double";
+		if (_tableView->itemType() == JASPControl::ItemType::Double)	return "double";
 		else															return "formula";
 	}
 	else																return "string";
@@ -297,7 +294,7 @@ bool ListModelCustomContrasts::sourceLabelsChanged(QString columnName, QMap<QStr
 	return true;
 }
 
-bool ListModelCustomContrasts::_labelChanged(const QString& columnName, const QString& originalLabel, const QString& newLabel)
+bool ListModelCustomContrasts::_labelChanged(const Term& columnName, const QString& originalLabel, const QString& newLabel)
 {
 	bool isChanged = false;
 	int col = _tableTerms.variables.indexOf(columnName);
@@ -367,21 +364,21 @@ void ListModelCustomContrasts::scaleFactorChanged()
 	double oldScaleFactor = _scaleFactor;
 	_scaleFactor = listView()->property("scaleFactor").toDouble();
 
-	QVector<QString> scaleVariables;
-	for (const QString& variable : _tableTerms.variables)
+	Terms scaleVariables;
+	for (const Term& variable : _tableTerms.variables)
 	{
-		if (requestInfo(VariableInfo::VariableType, variable).toInt() == int(columnType::scale))
-			scaleVariables.push_back(variable);
+		if (variable.type() == columnType::scale)
+			scaleVariables.add(variable);
 	}
 
-	if (scaleVariables.length() > 0)
+	if (scaleVariables.size() > 0)
 	{
 		if (oldScaleFactor == 0 || _scaleFactor == 0) // this will decrease or increase the number of rows
 			_resetValuesEtc();
 		else
 		{
 			beginResetModel();
-			for (const QString& scaleVariable : scaleVariables)
+			for (const Term& scaleVariable : scaleVariables)
 			{
 				_labelChanged(scaleVariable, QString::number(-oldScaleFactor), QString::number(-_scaleFactor));
 				_labelChanged(scaleVariable, QString::number(oldScaleFactor), QString::number(_scaleFactor));

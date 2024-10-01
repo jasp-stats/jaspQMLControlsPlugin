@@ -118,6 +118,9 @@ bool ComboBoxBase::isJsonValid(const Json::Value &optionValue) const
 
 void ComboBoxBase::setUp()
 {
+	if (property("fieldWidth").toInt() > 0) // If the fieldWidth is set, it means the width should be fixed and not dependent on the values of the dropdown.
+		_fixedWidth = true;
+
 	JASPListControl::setUp();
 
 	_model->resetTermsFromSources();
@@ -145,6 +148,8 @@ std::vector<std::string> ComboBoxBase::usedVariables() const
 
 void ComboBoxBase::termsChangedHandler()
 {
+	JASPListControl::termsChangedHandler();
+
 	std::vector<std::string> values = _model->getValues();
 	int index = -1;
 
@@ -203,7 +208,7 @@ void ComboBoxBase::setCurrentIndex(int index)
 
 void ComboBoxBase::_setCurrentProperties(int index, bool bindValue)
 {
-	QString currentColumnType, currentValue, currentText, currentColumnTypeIcon;
+	QString currentColumnType, currentColumnRealType, currentValue, currentText, currentColumnTypeIcon;
 
 	if (index >= _model->rowCount())	
 		index = 0;
@@ -213,6 +218,7 @@ void ComboBoxBase::_setCurrentProperties(int index, bool bindValue)
 		QModelIndex modelIndex(_model->index(index, 0));
 		
 		currentColumnType		= _model->data(modelIndex, ListModel::ColumnTypeRole	).toString();
+		currentColumnRealType	= _model->data(modelIndex, ListModel::ColumnRealTypeRole).toString();
 		currentColumnTypeIcon	= _model->data(modelIndex, ListModel::ColumnTypeIconRole).toString();
 		currentText				= _model->data(modelIndex, ListModel::NameRole			).toString();
 		currentValue			= _model->data(modelIndex, ListModel::ValueRole			).toString();
@@ -224,13 +230,15 @@ void ComboBoxBase::_setCurrentProperties(int index, bool bindValue)
 			emitCurrentValueSignal				= _currentValue				!= currentValue,
 			emitCurrentIndexSignal				= _currentIndex				!= index,
 			emitCurrentColumnTypeSignal			= _currentColumnType		!= currentColumnType,
+			emitCurrentColumnRealTypeSignal		= _currentColumnRealType	!= currentColumnRealType,
 			emitCurrentColumnTypeIconSignal		= _currentColumnTypeIcon	!= currentColumnTypeIcon;
 
 			_currentText						= currentText;
 			_currentValue						= currentValue;
-			_currentColumnType					= currentColumnType;
-			_currentColumnTypeIcon				= currentColumnTypeIcon;
 			_currentIndex						= index;
+			_currentColumnType					= currentColumnType;
+			_currentColumnRealType				= currentColumnRealType;
+			_currentColumnTypeIcon				= currentColumnTypeIcon;
 
 	if (emitCurrentTextSignal)				emit currentTextChanged();
 	if (emitCurrentValueSignal)				emit currentValueChanged();
@@ -246,36 +254,48 @@ void ComboBoxBase::_setCurrentProperties(int index, bool bindValue)
 }
 
 
-QString	ComboBoxBase::helpMD(SetConst & markdowned, int howDeep, bool) const
+QString	ComboBoxBase::helpMD(int depth) const
 {
-	QStringList md = { JASPControl::helpMD(markdowned, howDeep, false) };
-	howDeep++;
+	QStringList markdown;
 
-	if (values().isValid() && !values().isNull())
+	printLabelMD(markdown, depth);
+	markdown << info();
+
+	// If one of the option has an info property, then display the options as an unordered list
+	if (_hasOptionInfo())
 	{
-		bool isInteger = false;
-		values().toInt(&isInteger);
-
-		if (!isInteger)
+		for (const Term& term : _model->terms())
 		{
-			QList<QVariant> list = values().toList();
-			if (!list.isEmpty())
-			{
-				for (const QVariant& itemVariant : list)
-				{
-					QMap<QString, QVariant> labelValueInfoTriplet = itemVariant.toMap();
-					if (labelValueInfoTriplet.contains(labelRole()) && labelValueInfoTriplet.contains("info"))
-					{
-						QString label = labelValueInfoTriplet[labelRole()].toString(),
-								info  = labelValueInfoTriplet["info"].toString();
-
-						md << ( QString{howDeep, ' '} + "- *" + label + "*: " + info);
-					}
-				}
-			}
+			QString label = term.asQString(),
+					info = _model->getInfo(label);
+			markdown << "\n" << QString{depth * 2, ' '} << "- *" << label << "*";
+			if (!info.isEmpty())
+				markdown << (": " + info);
 		}
+	}
+	else
+	{
+		markdown << "\n" << QString{depth * 2, ' '};
+		// Display the options in one line separated by a comma.
+		markdown << model()->terms().asQList().join(", ");
 	}
 
 
-	return md.join("\n");
+	return markdown.join("") + "\n";
+}
+
+bool ComboBoxBase::_hasOptionInfo() const
+{
+	for (const Term& term : _model->terms())
+	{
+		if (!_model->getInfo(term.asQString()).isEmpty())
+			return true;
+	}
+
+	return false;
+}
+
+bool ComboBoxBase::hasInfo() const
+{
+	return JASPControl::hasInfo() || _hasOptionInfo();
 }

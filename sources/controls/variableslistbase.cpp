@@ -36,12 +36,15 @@
 #include <QTimer>
 #include <QQmlProperty>
 #include "log.h"
+#include "models/columntypesmodel.h"
+#include "preferencesmodelbase.h"
 
 VariablesListBase::VariablesListBase(QQuickItem* parent)
 	: JASPListControl(parent)
 {
 	_controlType			= ControlType::VariablesListView;
 	_useControlMouseArea	= false;
+	_allowedTypesModel		= new ColumnTypesModel(this);
 }
 
 void VariablesListBase::setUp()
@@ -85,21 +88,22 @@ void VariablesListBase::setUp()
 	//We use macros here because the signals come from QML
 	QQuickItem::connect(this, SIGNAL(itemDoubleClicked(int)),						this, SLOT(itemDoubleClickedHandler(int)));
 	QQuickItem::connect(this, SIGNAL(itemsDropped(QVariant, QVariant, int)),		this, SLOT(itemsDroppedHandler(QVariant, QVariant, int)));
-	connect(this,	&VariablesListBase::allowedColumnsChanged,						this, &VariablesListBase::_setAllowedVariables);
-	connect(this,	&VariablesListBase::suggestedColumnsChanged,					this, &VariablesListBase::_setAllowedVariables);
+	connect(this,				&VariablesListBase::allowedColumnsChanged,			this, &VariablesListBase::_setAllowedVariables			);
+	connect(_draggableModel,	&ListModelDraggable::filterChanged,					this, &VariablesListBase::checkLevelsConstraints		);
+	connect(this,				&VariablesListBase::maxLevelsChanged,				this, &VariablesListBase::checkLevelsConstraints		);
+	connect(this,				&VariablesListBase::minLevelsChanged,				this, &VariablesListBase::checkLevelsConstraints		);
+	connect(this,				&VariablesListBase::maxNumericLevelsChanged,		this, &VariablesListBase::checkLevelsConstraints		);
+	connect(this,				&VariablesListBase::minNumericLevelsChanged,		this, &VariablesListBase::checkLevelsConstraints		);
 }
 
 void VariablesListBase::_setInitialized(const Json::Value &value)
 {
-	ListModelAvailableInterface* availableModel = qobject_cast<ListModelAvailableInterface*>(_draggableModel);
-	if (availableModel)
-		availableModel->resetTermsFromSources(false);
-	else if (value == Json::nullValue && addAvailableVariablesToAssigned())
+	if (value == Json::nullValue && addAvailableVariablesToAssigned())
 	{
 		// If addAvailableVariablesToAssigned is true and this is initialized without value,
 		// maybe the availableAssignedList has some default values that must be assigned to this VariablesList
 		ListModelAssignedInterface* assignedModel = qobject_cast<ListModelAssignedInterface*>(_draggableModel);
-		if (assignedModel)
+		if (assignedModel && assignedModel->availableModel())
 			assignedModel->initTerms(assignedModel->availableModel()->terms());
 	}
 
@@ -248,77 +252,53 @@ void VariablesListBase::moveItemsDelayedHandler()
 
 void VariablesListBase::moveItems(QList<int> &indexes, ListModelDraggable* targetModel, int dropItemIndex)
 {
-	if (targetModel && indexes.size() > 0)
-	{
-		std::sort(indexes.begin(), indexes.end());
-		if (form()) form()->blockValueChangeSignal(true);
+	if (!targetModel || !indexes.size()) return;
 
-		ListModelDraggable* sourceModel = _draggableModel;
-		if (sourceModel == targetModel)
-			sourceModel->moveTerms(indexes, dropItemIndex);
-		else
-		{
-			bool refreshSource = false;
-			Terms termsAdded;
-			Terms removedTermsWhenAdding;
-			QList<int> indexAdded = indexes;
+	if (form()) form()->blockValueChangeSignal(true);
 
-			if (!sourceModel->copyTermsWhenDropped())
-			{
-				Terms terms = sourceModel->termsFromIndexes(indexes);
-				if (terms.size() == 0)
-					Log::log() << "No terms found when trying to move them" << std::endl;
-
-				termsAdded = targetModel->canAddTerms(terms);
-
-				if (termsAdded.size() > 0)
-					removedTermsWhenAdding = targetModel->addTerms(termsAdded, dropItemIndex);
-
-				if (termsAdded.size() != terms.size())
-				{
-					indexAdded.clear();
-					for (int i = 0; i < indexes.size(); i++)
-					{
-						int index = indexes[i];
-						if (i < int(terms.size()))
-						{
-							const Term& term = terms[size_t(i)];
-							if (termsAdded.contains(term))
-								indexAdded.append(index);
-						}
-					}
-					refreshSource = true;
-				}
-			}
-				
-			if (!targetModel->copyTermsWhenDropped())
-			{
-				if (indexAdded.size() > 0)
-				{
-					sourceModel->removeTerms(indexAdded);
-					refreshSource = false;
-				}
-				if (removedTermsWhenAdding.size() > 0)
-				{
-					sourceModel->addTerms(removedTermsWhenAdding);
-					refreshSource = false;
-				}
-			}
-
-			if (refreshSource)
-				sourceModel->refresh();
-		}
-		
-		if (form()) form()->blockValueChangeSignal(false);
-	}
+	std::sort(indexes.begin(), indexes.end());
+	ListModelDraggable* sourceModel = _draggableModel;
+	if (sourceModel == targetModel)
+		sourceModel->moveTerms(indexes, dropItemIndex);
 	else
 	{
-		Log::log()  << (!targetModel ? "no dropModel" : "no indexes") << std::endl;
+		Terms	termsToAdd	= sourceModel->termsFromIndexes(indexes),
+				termsAllowedToBeAdded = termsToAdd,
+				termsRejected;
+
+		//if a model keeps terms we dont need to bother adding or removing anything
+		if (!targetModel->keepTerms())
+		{
+			termsAllowedToBeAdded	=	targetModel->canAddTerms(	termsToAdd															);	// Check which terms can be added in the target model.
+			if (termsAllowedToBeAdded != termsToAdd) indexes	=	sourceModel->indexesFromTerms(termsAllowedToBeAdded					);	// If not all terms can be added, recompute the indexes, but keep the original indexes otherwise: when the same term can exist several times in the sourceModel, the original indexes will give the right term to move.
+		}
+		if (!sourceModel->keepTerms())								sourceModel->removeTerms(	indexes									);	// Then remove the terms in the source model. This must be done before adding them in the target model: for nested FactorsForm, it is important that the term is first removed from the source and afterwards added to the target.
+		if (!targetModel->keepTerms())	termsRejected			=	targetModel->addTerms(		termsAllowedToBeAdded, dropItemIndex	);	// Add the terms in the target model
+		if (!sourceModel->keepTerms())								sourceModel->addTerms(		termsRejected							);	// Any possible overflow (such as for single-variable-list) gets returned to the source
+		
 	}
+
+	if (form()) form()->blockValueChangeSignal(false);
+}
+
+QAbstractListModel *VariablesListBase::allowedTypesModel()
+{
+	return _allowedTypesModel;
+}
+
+bool VariablesListBase::isTypeAllowed(columnType type) const
+{
+	return _allowedTypesModel->hasType(type);
+}
+
+columnType VariablesListBase::defaultType() const
+{
+	return _allowedTypesModel->defaultType();
 }
 
 void VariablesListBase::setDropKeys(const QStringList &dropKeys)
 {
+	Log::log() << "LOG setDropKeys " << name() << ": " << dropKeys.join('/') << std::endl;
 	if (dropKeys != _dropKeys)
 	{
 		_dropKeys = dropKeys;
@@ -346,62 +326,109 @@ ListModel *VariablesListBase::getRelatedModel()
 	return result;
 }
 
+void VariablesListBase::setVariableType(int index, int type)
+{
+	model()->setVariableType(index, columnType(type));
+}
+
+void VariablesListBase::checkLevelsConstraints()
+{
+	JASPListControl::termsChangedHandler();
+
+	bool noScaleAllowed = !_allowedTypesModel->hasType(columnType::scale);
+
+	if (_minLevels >= 0 || _maxLevels >= 0 || _minNumericLevels >= 0 || _maxNumericLevels >= 0 || noScaleAllowed)
+	{
+		bool hasError = false;
+		int maxScaleLevels = PreferencesModelBase::preferences()->maxScaleLevels();
+
+		for (const Term& term : model()->terms())
+		{
+			QString termStr = term.asQString();
+			if (termStr.isEmpty())
+				continue;
+
+			columnType	termType	= (columnType)model()->requestInfo(VariableInfo::VariableType, termStr).toInt();
+			if (termType == columnType::unknown)
+				continue;
+
+			int nbLevels			= model()->requestInfo(VariableInfo::TotalLevels, termStr).toInt(),
+				nbNumValues			= model()->requestInfo(VariableInfo::TotalNumericValues, termStr).toInt();
+
+			if (_minLevels >= 0 && nbLevels < _minLevels)
+			{
+				addControlErrorPermanent(tr("Minimum number of levels is %1. Variable %2 has only %3 levels").arg(_minLevels).arg(termStr).arg(nbLevels));
+				hasError = true;
+			}
+			else if (_maxLevels >= 0 && nbLevels > _maxLevels)
+			{
+				addControlErrorPermanent(tr("Maximum number of levels is %1. Variable %2 has %3 levels.").arg(_maxLevels).arg(termStr).arg(nbLevels));
+				hasError = true;
+			}
+			else if (_maxLevels < 0 && noScaleAllowed && termType == columnType::scale && nbLevels > maxScaleLevels)
+			{
+				// This is the case when a scale variable is transformed into a nominal or ordinal, and the variable has more than the default maximum number of levels
+				// This should not be checked if maxLevels is explicitly set (that is if _maxLevels >= 0)
+				addControlErrorPermanent(tr("Attempt to transform scale variable %1 into a %2 variable, but its number of levels %3 exceeds the maximum %4. If you still want to use this variable, either change its type, or change 'Maximum allowed levels for scale' in Preferences / Data menu")
+										 .arg(termStr).arg(columnTypeToQString(_allowedTypesModel->defaultType())).arg(nbLevels).arg(maxScaleLevels));
+				hasError = true;
+			}
+			else if (_minNumericLevels >= 0 && nbNumValues < _minNumericLevels)
+			{
+				addControlErrorPermanent(tr("Minimum number of numeric values is %1. Variable %2 has only %3 different numeric values").arg(_minNumericLevels).arg(termStr).arg(nbNumValues));
+				hasError = true;
+			}
+			else if (_maxNumericLevels >= 0 && nbNumValues > _maxNumericLevels)
+			{
+				addControlErrorPermanent(tr("Maximum number of numeric values is %1. Variable %2 has %3 different numeric values").arg(_maxNumericLevels).arg(termStr).arg(nbNumValues));
+				hasError = true;
+			}
+
+			if (hasError)
+				break;
+		}
+
+		if (!hasError)
+			clearControlError();
+	}
+}
+
 void VariablesListBase::termsChangedHandler()
 {
 	setColumnsTypes(model()->termsTypes());
 	setColumnsNames(model()->terms().asQList());
 
+	checkLevelsConstraints();
+
 	if (_boundControl)	_boundControl->resetBoundValue();
-	else JASPListControl::termsChangedHandler();
 }
 
 void VariablesListBase::_setAllowedVariables()
 {
-	QSet<QString> implicitAllowedTypes;
+	columnTypeVec allowedTypes;
 
-	// The implicitAllowedTypes is either the allowedColumns if they are explicitely defined
-	// or the suggestedColumns with extra permitted types, with these rules:
-	// . if suggestedType contains the scale type, then nomincal & ordinal types are then also allowed.
-	// . if suggestedType contains the nomincal type, then nominalText & ordinal types are also allowed.
-
-	auto listToSet = [](QStringList l) { return QSet<QString> (l.constBegin(), l.constEnd()); };
-	if (!allowedColumns().empty())
-		implicitAllowedTypes = listToSet(allowedColumns());
-	else if (!suggestedColumns().empty())
+	for (const QString& typeStr: allowedColumns())
 	{
-		implicitAllowedTypes = listToSet(suggestedColumns());
-		if (suggestedColumns().contains("scale"))
-		{
-			implicitAllowedTypes.insert("nominal");
-			implicitAllowedTypes.insert("ordinal");
-		}
-		if (suggestedColumns().contains("nominal"))
-		{
-			implicitAllowedTypes.insert("nominalText");
-			implicitAllowedTypes.insert("ordinal");
-		}
+		columnType typeCol = columnTypeFromString(fq(typeStr), columnType::unknown);
+		
+		if (typeCol != columnType::unknown)
+			allowedTypes.push_back(typeCol);
 	}
+	
+	_allowedTypesModel->setTypes(allowedTypes);
 
-	_variableTypesAllowed.clear();
-	for (const QString& typeStr: implicitAllowedTypes)
-		_variableTypesAllowed.insert(columnTypeFromString(fq(typeStr), columnType::unknown));
-
-	// The suggectedColumnsIcons indicates which columns are allowed in the VariableList view.
-	// It shows per default the suggested columns list, but if empty, it shows the alloaed columns list.
-	QStringList iconTypeList,
-				columnTypes = allowedColumns().isEmpty() ? suggestedColumns() : allowedColumns();
-	for (const QString& columnTypeStr : columnTypes)
-	{
-		columnType type = columnTypeFromString(fq(columnTypeStr), columnType::unknown);
-		if (type != columnType::unknown)
-			iconTypeList.push_back(VariableInfo::getIconFile(type, VariableInfo::InactiveIconType));
-	}
-	setSuggestedColumnsIcons(iconTypeList);
+	emit allowedColumnsIconsChanged();
 
 	if (form() && form()->initialized())
 		// If the allowed columns have changed, then refresh the model so that columns that are not allowed anymore are removed.
 		model()->refresh();
 }
+
+QStringList VariablesListBase::allowedColumnsIcons() const
+{
+	return _allowedTypesModel->iconList();
+}
+
 
 void VariablesListBase::_setRelations()
 {
@@ -421,6 +448,10 @@ void VariablesListBase::_setRelations()
 				addDependency(availableModel->listView());
 				setContainsVariables();
 				setContainsInteractions();
+
+				// When the assigned model is of type interaction or it has multiple columns, then the available model should keep its terms when they are moved to the assigned model
+				if (_listViewType == ListViewType::Interaction || (columns() > 1 && _listViewType != ListViewType::RepeatedMeasures))
+					availableModel->setKeepTerms(true);
 			}
 		}
 	}

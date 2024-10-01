@@ -67,8 +67,9 @@ public:
 	void						setUpModel()										override;
 	void						setUp()												override;
 	void						rScriptDoneHandler(const QString & result)			override;
+	bool						infoAddControlType()						const	override	{ return true; }
 
-	JASP::ItemType itemTypePerItem(int col = -1, int row = -1) const;
+	JASP::ItemType				itemTypePerItem(int col = -1, int row = -1) const;
 
 	JASP::ModelType				modelType()									const				{ return _modelType;									}
 	JASP::ItemType				itemType()									const				{ return _itemType;										}
@@ -93,6 +94,7 @@ public:
 
 	void						setRowCount(int rows)											{ setSize(rows, -1);									}
 	void						setColumnCount(int columns)										{ setSize(-1, columns);									}
+	QString						friendlyName()								const	override;
 
 	Q_INVOKABLE void addColumn(int col = -1, bool left = true);
 	Q_INVOKABLE void removeColumn(int col);

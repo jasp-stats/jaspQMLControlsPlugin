@@ -27,7 +27,6 @@ ListModelMultiTermsAssigned::ListModelMultiTermsAssigned(JASPListControl* listVi
 	: ListModelAssignedInterface(listView)
 	, _columns(columns)
 {
-	_copyTermsWhenDropped = true;
 	_allowDuplicatesInMultipleColumns = listView->property("allowDuplicatesInMultipleColumns").toBool();
 }
 
@@ -165,12 +164,12 @@ void ListModelMultiTermsAssigned::_setTerms()
 
 Terms ListModelMultiTermsAssigned::addTerms(const Terms& termsToAdd, int dropItemIndex, const RowControlsValues&)
 {
-	beginResetModel();
 	Terms termsToReturn;
 	
 	if (termsToAdd.size() == 0)
 		return termsToReturn;
 	
+	beginResetModel();
 	bool done = false;
 	if (termsToAdd.size() == 1 && dropItemIndex >= 0)
 	{

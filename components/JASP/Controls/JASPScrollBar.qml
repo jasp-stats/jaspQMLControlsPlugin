@@ -20,13 +20,12 @@
 import QtQuick
 import QtQml
 
-
 Item
 {
 									id							: scrollbar
-									width						: vertical ? breadth   : undefined
-									height						: vertical ? undefined : breadth
-									visible						: flickable.visible && ((vertical ? heightRatio : widthRatio ) < 1.0)
+									width						: vertical ? breadth		: implicitWidth
+									height						: vertical ? implicitHeight : breadth
+									visible						: flickable.visible && ((vertical ? heightRatio : widthRatio ) < 0.99)
 
 	readonly	property int		visibleBreadth				: bigBar ? jaspTheme.scrollbarBoxWidthBig : jaspTheme.scrollbarBoxWidth
 				property int		breadth						: visible ? visibleBreadth : 0
@@ -160,8 +159,8 @@ Item
 
 			}
 
-			onClicked:	if(scrollbar.vertical)	flickable.contentY = (mouse.y / groove.height * (flickable.contentHeight - flickable.height)) ;
-						else					flickable.contentX = (mouse.x / groove.width  * (flickable.contentWidth  - flickable.width))  ;
+			onClicked:	(mouse) => {	if(scrollbar.vertical)	flickable.contentY = (mouse.y / groove.height * (flickable.contentHeight - flickable.height)) ;
+										else					flickable.contentX = (mouse.x / groove.width  * (flickable.contentWidth  - flickable.width))  ; }
 
 		}
 	}

@@ -28,13 +28,14 @@ class ComponentsListBase : public JASPListControl, public BoundControlBase
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY( bool			addItemManually		READ addItemManually		WRITE setAddItemManually		NOTIFY addItemManuallyChanged		)
-	Q_PROPERTY( int				minimumItems		READ minimumItems			WRITE setMinimumItems			NOTIFY minimumItemsChanged			)
-	Q_PROPERTY( int				maximumItems		READ maximumItems			WRITE setMaximumItems			NOTIFY maximumItemsChanged			)
-	Q_PROPERTY( QString			newItemName			READ newItemName			WRITE setNewItemName			NOTIFY newItemNameChanged			)
-	Q_PROPERTY( QList<QVariant>	defaultValues		READ defaultValues			WRITE setDefaultValues			NOTIFY defaultValuesChanged			)
-	Q_PROPERTY( bool			duplicateWhenAdding	READ duplicateWhenAdding	WRITE setDuplicateWhenAdding	NOTIFY duplicateWhenAddingChanged	)
-	Q_PROPERTY( QList<int>		offsets				READ offsets												NOTIFY offsetsChanged				)
+	Q_PROPERTY( bool			addItemManually			READ addItemManually		WRITE setAddItemManually		NOTIFY addItemManuallyChanged		)
+	Q_PROPERTY( int				minimumItems			READ minimumItems			WRITE setMinimumItems			NOTIFY minimumItemsChanged			)
+	Q_PROPERTY( int				maximumItems			READ maximumItems			WRITE setMaximumItems			NOTIFY maximumItemsChanged			)
+	Q_PROPERTY( QString			newItemName				READ newItemName			WRITE setNewItemName			NOTIFY newItemNameChanged			)
+	Q_PROPERTY( QList<QVariant>	defaultValues			READ defaultValues			WRITE setDefaultValues			NOTIFY defaultValuesChanged			)
+	Q_PROPERTY( bool			duplicateWhenAdding		READ duplicateWhenAdding	WRITE setDuplicateWhenAdding	NOTIFY duplicateWhenAddingChanged	)
+	Q_PROPERTY( QList<QVariant>	controlNameXOffsetMap	READ controlNameXOffsetMap									NOTIFY controlNameXOffsetMapChanged	)
+	Q_PROPERTY( QList<QVariant>	headerLabels			READ headerLabels			WRITE setHeaderLabels			NOTIFY headerLabelsChanged			)
 
 public:
 	ComponentsListBase(QQuickItem* item = nullptr);
@@ -53,7 +54,8 @@ public:
 	QList<QVariant>	defaultValues()						const			{ return _defaultValues;		}
 	bool			duplicateWhenAdding()				const			{ return _duplicateWhenAdding;	}
 	void			bindOffsets();
-	QList<int>		offsets();
+	QList<QVariant>	controlNameXOffsetMap()				const;
+	QList<QVariant>	headerLabels()						const			{ return _headerLabels;			}
 
 	Json::Value		getJsonFromComponentValues(const ListModel::RowControlsValues& termsWithComponentValues);
 
@@ -67,7 +69,8 @@ signals:
 	void			maximumItemsChanged();
 	void			defaultValuesChanged();
 	void			duplicateWhenAddingChanged();
-	void			offsetsChanged();
+	void			controlNameXOffsetMapChanged();
+	void			headerLabelsChanged();
 
 public slots:
 	GENERIC_SET_FUNCTION(NewItemName,			_newItemName,			newItemNameChanged,				QString			)
@@ -75,6 +78,7 @@ public slots:
 	GENERIC_SET_FUNCTION(MinimumItems,			_minimumItems,			minimumItemsChanged,			int				)
 	GENERIC_SET_FUNCTION(MaximumItems,			_maximumItems,			maximumItemsChanged,			int				)
 	GENERIC_SET_FUNCTION(DefaultValues,			_defaultValues,			defaultValuesChanged,			QList<QVariant>	)
+	GENERIC_SET_FUNCTION(HeaderLabels,			_headerLabels,			headerLabelsChanged,			QList<QVariant>	)
 	GENERIC_SET_FUNCTION(DuplicateWhenAdding,	_duplicateWhenAdding,	duplicateWhenAddingChanged,		bool			)
 
 protected slots:
@@ -96,7 +100,8 @@ private:
 								_duplicateWhenAdding	= false;
 	int							_minimumItems			= 0,
 								_maximumItems			= -1;
-	QList<QVariant>				_defaultValues;
+	QList<QVariant>				_defaultValues,
+								_headerLabels;
 };
 
 #endif // COMPONENTSLIST_H

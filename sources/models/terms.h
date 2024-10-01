@@ -75,6 +75,8 @@ public:
 
 	const_iterator begin() const;
 	const_iterator end() const;
+	iterator begin();
+	iterator end();
 
 	void remove(const Term &term);
 	void remove(const Terms &terms);
@@ -90,10 +92,12 @@ public:
 	void clear();
 
 	const Term &at(size_t index)								const;
+	Term &at(size_t index);
 	bool contains(const Term		&	term)					const;
 	bool contains(const QString		&	component);
 	bool contains(const std::string &	component);
 	int	 indexOf(const QString		&	component)				const;
+	int	 indexOf(const Term			&	component)				const;
 
 	std::vector<std::string>				asVector()			const;
 	std::set<std::string>					asSet()				const;
@@ -115,6 +119,10 @@ public:
 	bool operator==(const Terms &terms) const;
 	bool operator!=(const Terms &terms) const;
 	const Term& operator[](size_t index) const { return at(index); }
+
+	bool strictlyEquals(const Terms &terms) const; // Also takes care of the draggable flag
+	void setDraggable(bool draggable);
+	void setUndraggableTerms(const Terms& undraggableTerms);
 
 private:
 

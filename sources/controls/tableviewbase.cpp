@@ -195,6 +195,8 @@ void TableViewBase::refreshMe()
 
 void TableViewBase::termsChangedHandler()
 {
+	JASPListControl::termsChangedHandler();
+
 	if (_boundControl)
 		_boundControl->resetBoundValue();
 }
@@ -271,3 +273,18 @@ void TableViewBase::setItemTypePerColumn(QVariantList list)
 		emit itemTypePerColumnChanged();
 	}
 }
+
+QString TableViewBase::friendlyName() const
+{
+	switch (modelType())
+	{
+	case JASP::ModelType::MultinomialChi2Model		: return tr("Mutinomial Chi2 Table");
+	case JASP::ModelType::JAGSDataInputModel		: return tr("JAGS Table");
+	case JASP::ModelType::CustomContrasts			: return tr("Custom Contrasts Table");
+	case JASP::ModelType::FilteredDataEntryModel	: return tr("Filterd Data Entry Table");
+	case JASP::ModelType::GridInput					: return tr("Grid Table");
+	case JASP::ModelType::Simple					:
+	default											: return tr("Table");
+	}
+}
+

@@ -35,7 +35,18 @@ public:
         FactorNameRole = Qt::UserRole + 1,
 		FactorTitleRole
     };
-	typedef std::vector<std::tuple<std::string, std::string, std::vector<std::string> > > FactorVec;
+
+	struct Factor
+	{
+		QString						name;
+		QString						title;
+		JASPListControl*			listView;
+		Terms						initTerms;
+		Factor(const QString& _name, const QString& _title, const Terms& _initTerms) :
+			name(_name), title(_title), listView(nullptr), initTerms(_initTerms) {}
+	};
+
+	typedef std::vector<Factor> FactorVec;
 
 	ListModelFactorsForm(JASPListControl* listView);
 	
@@ -47,7 +58,7 @@ public:
 	void					initFactors(const FactorVec &factors);
 	int						count()														const				{ return int(_factors.size()); }
 	int						countVariables()											const;
-	FactorVec				getFactors();
+	const FactorVec&		getFactors()												const				{ return _factors;	}
 	
 	void					addFactor();
 	void					removeFactor();
@@ -56,23 +67,18 @@ public:
 public slots:
 	void titleChangedSlot(int index, QString title);
 	void resetModelTerms();
+	void ensureNesting();
 
 signals:
 	void addListView(JASPListControl* listView);
 	
-protected:
-	struct Factor
-	{
-		QString						name;
-		QString						title;
-		JASPListControl*			listView;
-		std::vector<std::string>	initTerms;
-		Factor(const QString& _name, const QString& _title, std::vector<std::string> _initTerms = std::vector<std::string>()) :
-			name(_name), title(_title), listView(nullptr), initTerms(_initTerms) {}
-	};
+protected slots:
+	void nestedChangedHandler();
 
-	QVector<Factor*>	_factors;
-	FactorsFormBase*	_factorsForm = nullptr;
+protected:
+	FactorVec			_factors;
+	FactorsFormBase*	_factorsForm		= nullptr;
+	bool				_ensuringNesting	= false;
 	
 };
 

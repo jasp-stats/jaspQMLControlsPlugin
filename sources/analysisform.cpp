@@ -38,6 +38,8 @@
 
 using namespace std;
 
+const QString AnalysisForm::rSyntaxControlName = "__RSyntaxTextArea";
+
 AnalysisForm::AnalysisForm(QQuickItem *parent) : AnalysisFormBase(parent)
 {
 	setObjectName("AnalysisForm");
@@ -45,6 +47,7 @@ AnalysisForm::AnalysisForm(QQuickItem *parent) : AnalysisFormBase(parent)
 	_rSyntax = new RSyntax(this);
 	// _startRSyntaxTimer is used to call setRSyntaxText only once in a event loop.
 	connect(this,									&AnalysisForm::infoChanged,					this, &AnalysisForm::helpMDChanged			);
+	connect(this,									&AnalysisForm::infoBottomChanged,			this, &AnalysisForm::helpMDChanged			);
 	connect(this,									&AnalysisForm::formCompletedSignal,			this, &AnalysisForm::formCompletedHandler,	Qt::QueuedConnection);
 	connect(this,									&AnalysisForm::analysisChanged,				this, &AnalysisForm::knownIssuesUpdated,	Qt::QueuedConnection);
 	connect(KnownIssues::issues(),					&KnownIssues::knownIssuesUpdated,			this, &AnalysisForm::knownIssuesUpdated,	Qt::QueuedConnection);
@@ -73,16 +76,10 @@ void AnalysisForm::refreshAnalysis()
 	_analysis->refresh();
 }
 
-void AnalysisForm::runAnalysis()
-{
-	_analysis->run();
-	refreshTableViewModels();
-}
-
 QString AnalysisForm::generateWrapper(const QString& moduleName, const QString& analysisName, const QString& qmlFileName)
 {
 	if (!_analysis)
-		setAnalysis(new AnalysisBase(this, AppInfo::version, moduleName, analysisName, qmlFileName)); // Create a dummy analyis object
+			setAnalysis(new AnalysisBase(this, AppInfo::version, moduleName, analysisName, qmlFileName)); // Create a dummy analyis object
 
 	return _rSyntax->generateWrapper();
 }
@@ -322,15 +319,6 @@ QString AnalysisForm::msgsListToString(const QStringList & list) const
 	return !text.size() ? "" : "<ul style=\"margins:0px\">" + text + "</ul>";
 }
 
-void AnalysisForm::setInfo(QString info)
-{
-	if (_info == info)
-		return;
-
-	_info = info;
-	emit infoChanged();
-}
-
 QString AnalysisForm::_getControlLabel(QString controlName)
 {
 	return _controls[controlName]->humanFriendlyLabel();
@@ -421,7 +409,7 @@ void AnalysisForm::addFormWarning(const QString & warning)
 
 //This should be moved to JASPControl maybe?
 //Maybe even to full QML? Why don't we just use a loader...
-void AnalysisForm::addControlError(JASPControl* control, QString message, bool temporary, bool warning)
+void AnalysisForm::addControlError(JASPControl* control, QString message, bool temporary, bool warning, bool closeable)
 {
 	if (!control)
 	{
@@ -449,7 +437,7 @@ void AnalysisForm::addControlError(JASPControl* control, QString message, bool t
 			// Cannot instantiate _controlErrorMessageComponent in the constructor (it crashes), and it might be too late in the formCompletedHandler since error can be generated earlier
 			// So create it when it is needed for the first time.
 			if (!_controlErrorMessageComponent)
-				_controlErrorMessageComponent = new QQmlComponent(qmlEngine(this), "qrc:///jasp-stats.org/imports/JASP/Controls/components/JASP/Controls//ControlErrorMessage.qml");
+				_controlErrorMessageComponent = new QQmlComponent(qmlEngine(this), "qrc:///jasp-stats.org/imports/JASP/Controls/components/JASP/Controls/ControlErrorMessage.qml");
 
 			controlErrorMessageItem = qobject_cast<QQuickItem*>(_controlErrorMessageComponent->create(QQmlEngine::contextForObject(this)));
 			if (!controlErrorMessageItem)
@@ -470,10 +458,10 @@ void AnalysisForm::addControlError(JASPControl* control, QString message, bool t
 			if (!container)
 				container = control->parentListView();
 		}
-		controlErrorMessageItem->setProperty("message", message);
 
 		controlErrorMessageItem->setProperty("control", QVariant::fromValue(control));
 		controlErrorMessageItem->setProperty("warning", warning);
+		controlErrorMessageItem->setProperty("closeable", closeable);
 		controlErrorMessageItem->setParentItem(container);
 		QMetaObject::invokeMethod(controlErrorMessageItem, "showMessage", Qt::QueuedConnection, Q_ARG(QVariant, message), Q_ARG(QVariant, temporary));
 	}
@@ -489,7 +477,7 @@ bool AnalysisForm::hasError()
 	// Controls handling inside a form must indeed be done in anther way!
 
 	for (QQuickItem* item : _controlErrorMessageCache)
-		if (item->property("control").value<JASPControl*>() != nullptr)
+		if (item->property("control").value<JASPControl*>() != nullptr && !item->property("warning").toBool())
 			return true;
 
 	return false;
@@ -719,8 +707,6 @@ void AnalysisForm::blockValueChangeSignal(bool block, bool notifyOnceUnblocked)
 
 QString AnalysisForm::rSyntaxText() const
 {
-	Log::log() << "rSyntaxText: " << _rSyntaxText << std::endl;
-
 	return _rSyntaxText;
 }
 
@@ -881,30 +867,33 @@ std::set<string> AnalysisForm::usedVariables()
 ///Generates documentation based on the "info" entered on each component
 QString AnalysisForm::helpMD() const
 {
-	if(!_analysis) return "";
+	if(!_analysis || !initialized()) return "";
 
 	QStringList markdown =
 	{
-		title(), "\n",
-		"=====================\n",
-		_info, "\n\n",
-		"---\n# ", tr("Options"), "\n"
+		"# ", title(), "\n",
+		_info, "\n"
 	};
 
-	QList<JASPControl*> orderedControls = JASPControl::getChildJASPControls(this);
 
-	std::set<const JASPControl *> markdowned;
+	QList<JASPControl*> orderedControls = JASPControl::getChildJASPControls(this);
+	orderedControls.removeIf([](JASPControl* c) { return c->helpMD().isEmpty(); });
+
+	if (orderedControls.length() > 0 && orderedControls[0]->controlType() != JASPControl::ControlType::Expander)
+		// If the first control is an ExpanderButton, then it adds already a line
+		markdown << "\n---\n";
 
 	for(JASPControl * control : orderedControls)
-		if(!markdowned.count(control))
-			markdown.push_back(control->helpMD(markdowned));
+		markdown << control->helpMD() << "\n";
 
-	markdown.push_back(metaHelpMD());
+	markdown << metaHelpMD();
 	
+	if(!_infoBottom.isEmpty())
+		markdown << "\n\n---\n" << _infoBottom  << "\n";
+
 	QString md = markdown.join("");
 	
-	if(_analysis)
-		_analysis->preprocessMarkdownHelp(md);
+	_analysis->preprocessMarkdownHelp(md);
 	
 	return md;
 }
@@ -941,7 +930,7 @@ QString AnalysisForm::metaHelpMD() const
 		return markdown.join("");
 	};
 
-	QString meta = metaMDer(_analysis->resultsMeta(), 2);
+	QString meta = metaMDer(_analysis->resultsMeta(), 2).trimmed();
 	return meta.isEmpty() ? "" : "---\n# " + tr("Output") + "\n\n" + meta;
 }
 

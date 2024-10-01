@@ -46,7 +46,7 @@ FocusScope
 	readonly	property string iconsFolder				: jaspTheme.iconPath
 	readonly	property string	expanderButtonIcon		: "expander-arrow-up.png"
 				property alias	columns					: expanderArea.columns
-	
+
 	states: [
 		State
 		{
@@ -65,11 +65,11 @@ FocusScope
 	transitions: Transition
 	{
 		enabled:	preferencesModel.animationsOn
-		
+
 		NumberAnimation		{ property: "implicitHeight";	duration: 250; easing.type: Easing.OutQuad; easing.amplitude: 3 }
 		RotationAnimation	{								duration: 250; easing.type: Easing.OutQuad; easing.amplitude: 3 }
 	}
-	
+
 	ExpanderButtonBase
 	{
 		id						: expanderButton
@@ -83,17 +83,17 @@ FocusScope
 		Keys.onReturnPressed	: toggleExpander()
 
 		function toggleExpander() { expanderWrapper.expanded = !expanderWrapper.expanded; }
-        
+
 		MouseArea
 		{
-            anchors.fill: parent
+			anchors.fill: parent
 			onClicked:
 			{
-                expanderButton.toggleExpander();
-                expanderButton.forceActiveFocus();
-            }
-        }
-        
+				expanderButton.toggleExpander();
+				expanderButton.forceActiveFocus();
+			}
+		}
+
 		Rectangle
 		{
 			id				: expanderRectangle
@@ -121,7 +121,7 @@ FocusScope
 					height			: expanderIcon.height * 2
 				}
 			}
-            
+
 			Text
 			{
 				id						: label
@@ -131,9 +131,9 @@ FocusScope
 				anchors.verticalCenter	: parent.verticalCenter
 				font					: jaspTheme.font
 				color					: enabled ? jaspTheme.textEnabled : jaspTheme.textDisabled
-            }
-        }
-    }
+			}
+		}
+	}
 
 	GridLayout
 	{
@@ -147,12 +147,12 @@ FocusScope
 		columns					: 2
 		visible					: expanderWrapper.implicitHeight > expanderButton.height //set to that focus chain does not enter closed expanders
 //		anchors.bottomMargin	: 20 * preferencesModel.uiScale
-    }
+	}
 
 	Rectangle
 	{
 		z				: -1
 		anchors.fill	: parent
 		color			: jaspTheme.analysisBackgroundColor
-	}    
+	}
 }

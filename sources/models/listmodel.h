@@ -45,6 +45,8 @@ public:
 		SelectedRole,
 		SelectableRole,
 		ColumnTypeRole,
+		ColumnPreviewRole,
+		ColumnRealTypeRole,
 		ColumnTypeIconRole,
 		ColumnTypeDisabledIconRole,
 		RowComponentRole,
@@ -86,6 +88,10 @@ public:
 	virtual JASPControl	*			getRowControl(const QString& key, const QString& name)		const;
 	virtual bool					addRowControl(const QString& key, JASPControl* control);
 			QStringList				termsTypes();
+			void					setVariableType(int index, columnType type);
+			columnType				getVariableType(	const QString& name)					const;
+			columnType				getVariableRealType(const QString& name)					const;
+			QString					getVariablePreview(	const QString& name)					const;
 
 	Q_INVOKABLE int					searchTermWith(QString searchString);
 	Q_INVOKABLE void				selectItem(int _index, bool _select);
@@ -93,24 +99,23 @@ public:
 	Q_INVOKABLE void				setSelectedItem(int _index);
 	Q_INVOKABLE void				selectAllItems();
 	Q_INVOKABLE QList<int>			selectedItems()															{ return _selectedItems; }
-    Q_INVOKABLE QList<QString>		selectedItemsTypes()													{ return QList<QString>(_selectedItemsTypes.begin(), _selectedItemsTypes.end()); }
 
 
 signals:
 			void termsChanged();		// Used to signal all kinds of changes in the model. Do not call it directly
 			void namesChanged(QMap<QString, QString> map);
-			void columnTypeChanged(QString name);
+			void columnTypeChanged(Term term);
 			void labelsChanged(QString columnName, QMap<QString, QString> = {});
 			void labelsReordered(QString columnName);
+			void filterChanged();
 			void columnsChanged(QStringList columns);
 			void selectedItemsChanged();
 			void oneTermChanged(const QString& oldName, const QString& newName);
-			void selectedItemsTypesChanged();
 
 public slots:	
 	virtual void sourceTermsReset();
 	virtual void sourceNamesChanged(QMap<QString, QString> map);
-	virtual int  sourceColumnTypeChanged(QString colName);
+	virtual int  sourceColumnTypeChanged(Term sourceTerm);
 	virtual bool sourceLabelsChanged(QString columnName, QMap<QString, QString> changedLabels = {});
 	virtual bool sourceLabelsReordered(QString columnName);
 	virtual void sourceColumnsChanged(QStringList columns);
@@ -126,9 +131,13 @@ protected:
 			void	_removeTerm(const Term& term);
 			void	_removeLastTerm();
 			void	_addTerms(const Terms& terms);
-			void	_addTerm(const QString& term, bool isUnique = true);
+			void	_addTerm(const Term& term, bool isUnique = true);
 			void	_replaceTerm(int index, const Term& term);
 			void	_connectAllSourcesControls();
+			Terms	_checkTermsTypes(const Terms& terms)				const;
+			Terms	_checkTermsTypes(const std::vector<Term>& terms)	const;
+			Term	_checkTermType(const Term& terms)					const;
+			void	_setAllowedType(Term& term)							const;
 
 			QString							_itemType;
 			bool							_needsSource			= true;
@@ -137,11 +146,9 @@ protected:
 			RowControlsValues				_rowControlsValues;
 			QList<BoundControl *>			_rowControlsConnected;
 			QList<int>						_selectedItems;
-			QSet<QString>					_selectedItemsTypes;
 			QStringList						_columnsUsedForLabels;
 
 private:
-			void	_addSelectedItemType(int _index);
 			void	_initTerms(const Terms &terms, const RowControlsValues& allValuesMap, bool initRowControls = true);
 			void	_connectSourceControls(SourceItem* sourceItem);
 

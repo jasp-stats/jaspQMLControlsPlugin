@@ -57,26 +57,6 @@ void ListModelAssignedInterface::setAvailableModel(ListModelAvailableInterface *
 	_availableModel = source;
 }
 
-int ListModelAssignedInterface::sourceColumnTypeChanged(QString name)
-{
-	int index = ListModelDraggable::sourceColumnTypeChanged(name);
-	VariablesListBase* qmlListView = dynamic_cast<VariablesListBase*>(listView());
-
-	if (qmlListView && index >= 0 && index < int(terms().size()))
-	{
-		if (!isAllowed(terms().at(size_t(index))))
-		{
-			QList<int> indexes = {index};
-			qmlListView->moveItems(indexes, _availableModel);
-			ListModelDraggable::refresh();
-		}
-		// Force the analysis to be rerun
-		emit qmlListView->boundValueChanged(qmlListView);
-	}
-
-	return index;
-}
-
 bool ListModelAssignedInterface::sourceLabelsChanged(QString columnName, QMap<QString, QString> changedLabels)
 {
 	bool change = ListModelDraggable::sourceLabelsChanged(columnName, changedLabels);
@@ -112,7 +92,7 @@ bool ListModelAssignedInterface::checkAllowedTerms(Terms& terms)
 	if (notAllowedTerms.size() == 0) return true;
 
 	terms.set(allowedTerms);
-	if (!_availableModel->copyTermsWhenDropped())
+	if (!_availableModel->keepTerms())
 		_availableModel->addTerms(notAllowedTerms);
 
 	QString notAllowedTermsStr = notAllowedTerms.asQList().join(", ");

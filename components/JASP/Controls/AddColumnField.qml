@@ -23,5 +23,5 @@ TextField
 {
 	inputType:			"addColumn"
 
-	property int columnType: columnTypeScale //Or columnTypeNominal, columnTypeNominalText or columnTypeOrdinal
+	property int columnType: columnTypeScale //Or columnTypeNominal, or columnTypeOrdinal
 }

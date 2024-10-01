@@ -95,6 +95,15 @@ Terms ListModelMeasuresCellsAssigned::termsFromIndexes(const QList<int> &indexes
 	return result;
 }
 
+QList<int> ListModelMeasuresCellsAssigned::indexesFromTerms(const Terms &terms) const
+{
+	QList<int> indexes = ListModelAssignedInterface::indexesFromTerms(terms);
+
+	std::for_each(indexes.begin(), indexes.end(), [](int &n) { n *= 2; });
+
+	return indexes;
+}
+
 void ListModelMeasuresCellsAssigned::initTerms(const Terms &terms, const ListModel::RowControlsValues &allValuesMap, bool reInit)
 {
 	ListModelAssignedInterface::initTerms(terms, allValuesMap, reInit);
@@ -103,6 +112,9 @@ void ListModelMeasuresCellsAssigned::initTerms(const Terms &terms, const ListMod
 
 Terms ListModelMeasuresCellsAssigned::addTerms(const Terms& termsToAdd, int dropItemIndex, const RowControlsValues&)
 {
+	if(!termsToAdd.size())
+		return Terms();
+	
 	beginResetModel();
 	if (dropItemIndex >= 0)
 		dropItemIndex = dropItemIndex / 2;
@@ -169,6 +181,9 @@ void ListModelMeasuresCellsAssigned::moveTerms(const QList<int> &indexes, int dr
 
 void ListModelMeasuresCellsAssigned::removeTerms(const QList<int> &indexes)
 {
+	if(!indexes.count())
+		return;
+	
 	beginResetModel();
 	for (int i = 0; i < indexes.length(); i++)
 	{

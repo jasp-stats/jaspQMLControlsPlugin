@@ -12,7 +12,7 @@ const QStringList JASPControl::_optionReservedNames = {"data", "version"};
 
 QMap<QQmlEngine*, QQmlComponent*> JASPControl::_mouseAreaComponentMap;
 QByteArray JASPControl::_mouseAreaDef = "\
-	import QtQuick 2.9\n\
+	import QtQuick\n\
 	MouseArea {\n\
 	z:					5\n\
 	anchors.fill:		parent\n\
@@ -36,28 +36,18 @@ JASPControl::JASPControl(QQuickItem *parent) : QQuickItem(parent)
 {
 	setFlag(ItemIsFocusScope);
 	setActiveFocusOnTab(true);
-	/*if (JaspTheme::currentTheme()) // THis does not work...
-	{
-		// TODO: Add currentTheme changed font changed
-		QQmlProperty(this, "ToolTip.timeout", qmlContext(this)).write(JaspTheme::currentTheme()->toolTipTimeout());
-		setProperty("ToolTip.delay", JaspTheme::currentTheme()->toolTipDelay());
-		setProperty("ToolTip.tooltip.font", JaspTheme::currentTheme()->font());
-	}*/
 
 	connect(this, &JASPControl::titleChanged,			this, &JASPControl::helpMDChanged);
 	connect(this, &JASPControl::infoChanged,			this, &JASPControl::helpMDChanged);
 	connect(this, &JASPControl::visibleChanged,			this, &JASPControl::helpMDChanged);
 	connect(this, &JASPControl::visibleChildrenChanged,	this, &JASPControl::helpMDChanged);
 	connect(this, &JASPControl::backgroundChanged,		[this] () { if (!_focusIndicator)		setFocusIndicator(_background); });
-	connect(this, &JASPControl::infoChanged,			[this] () { if (_toolTip.isEmpty())	setToolTip(_info);					});
+	connect(this, &JASPControl::infoChanged,			[this] () { if (_toolTip.isEmpty())	setToolTip(info());					});
 	connect(this, &JASPControl::toolTipChanged,			[this] () { setShouldStealHover(!_toolTip.isEmpty());					});
-	connect(this, &JASPControl::hasErrorChanged,		this, &JASPControl::_setFocusBorder);
-	connect(this, &JASPControl::hasWarningChanged,		this, &JASPControl::_setFocusBorder);
-	connect(this, &JASPControl::isDependencyChanged,	this, &JASPControl::_setFocusBorder);
-	connect(this, &JASPControl::shouldShowFocusChanged,	this, &JASPControl::_setFocusBorder);
-	connect(this, &JASPControl::activeFocusChanged,		this, &JASPControl::_setShouldShowFocus);
-	connect(this, &JASPControl::focusOnTabChanged,		this, &JASPControl::_setShouldShowFocus);
-	connect(this, &JASPControl::innerControlChanged,	this, &JASPControl::_setShouldShowFocus);
+	connect(this, &JASPControl::hasErrorChanged,		this, &JASPControl::_hightlightBorder);
+	connect(this, &JASPControl::hasWarningChanged,		this, &JASPControl::_hightlightBorder);
+	connect(this, &JASPControl::isDependencyChanged,	this, &JASPControl::_hightlightBorder);
+	connect(this, &JASPControl::activeFocusChanged,		this, &JASPControl::_hightlightBorder);
 	//connect(this, &JASPControl::implicitWidthChanged,	[this] () { setWidth(implicitWidth());		if (_preferredWidthBinding) setPreferredWidth(int(implicitWidth()), true);		});
 	//connect(this, &JASPControl::implicitHeightChanged,	[this] () { setHeight(implicitHeight());	if (_preferredHeightBinding) setPreferredHeight(int(implicitHeight()), true);	});
 	connect(this, &JASPControl::indentChanged,			[this] () { QQmlProperty(this, "Layout.leftMargin", qmlContext(this)).write( (indent() && JaspTheme::currentTheme()) ? JaspTheme::currentTheme()->indentationLength() : 0); });
@@ -95,7 +85,7 @@ void JASPControl::setInnerControl(QQuickItem* control)
 		_innerControl = control;
 		if (_innerControl && !qobject_cast<JASPControl*>(_innerControl))
 		{
-			connect(_innerControl, &QQuickItem::activeFocusChanged, this, &JASPControl::_setShouldShowFocus);
+			connect(_innerControl, &QQuickItem::activeFocusChanged, this, &JASPControl::_hightlightBorder);
 			//capture focus reason
 			control->installEventFilter(this);
 		}
@@ -129,11 +119,6 @@ void JASPControl::setPreferredWidth(int preferredWidth, bool isBinding)
 
 		emit preferredWidthChanged();
 	}
-}
-
-void JASPControl::_setShouldShowFocus()
-{
-	setShouldShowFocus(hasActiveFocus() && focusOnTab() && (!_innerControl || _innerControl->hasActiveFocus()) && !hasError());
 }
 
 void JASPControl::_setBackgroundColor()
@@ -289,6 +274,12 @@ void JASPControl::addControlErrorTemporary(QString message)
 		_form->addControlError(this, message, true);
 }
 
+void JASPControl::addControlErrorPermanent(QString message)
+{
+	if (_form && message.size())
+		_form->addControlError(this, message, false, false, false);
+}
+
 void JASPControl::addControlWarning(QString message)
 {
 	if (_form && message.size())
@@ -307,7 +298,7 @@ void JASPControl::clearControlError()
 		_form->clearControlError(this);
 }
 
-QList<JASPControl*> JASPControl::getChildJASPControls(const QQuickItem * item)
+QList<JASPControl*> JASPControl::getChildJASPControls(const QQuickItem * item, bool removeUnecessaryGroups)
 {
 	QList<JASPControl*> result;
 
@@ -320,8 +311,24 @@ QList<JASPControl*> JASPControl::getChildJASPControls(const QQuickItem * item)
 	{
 		JASPControl* childControl = qobject_cast<JASPControl*>(childItem);
 
-		if (childControl)	result.push_back(childControl);
-		else				result.append(getChildJASPControls(childItem));
+		if (childControl)
+		{
+			if (removeUnecessaryGroups && childControl->controlType() == ControlType::GroupBox && childControl->title().isEmpty() && childControl->infoLabel().isEmpty() && childControl->info().isEmpty())
+				// If a Group has no label, title or info, then it is used probably for layout purpose, but to structure the controls is sub elements.
+				// Just skip it: this is necessary for generating properly the markdown help
+				result.append(getChildJASPControls(childControl));
+			else
+				result.push_back(childControl);
+		}
+		else if (childItem->objectName() == "Section")
+		{
+			// The Expander button QML is not a JASPControl directly, it is composed by the button and a GridLayout wrapped up by a FocusScape
+			// So take here the Button to have a real JASPControl.
+			JASPControl* expanderButton = childItem->property("button").value<JASPControl*>();
+			result.push_back(expanderButton);
+		}
+		else
+			result.append(getChildJASPControls(childItem));
 	}
 
 	return result;
@@ -382,48 +389,41 @@ void JASPControl::setFocusIndicator(QQuickItem *focusIndicator)
 	}
 }
 
-void JASPControl::_setFocusBorder()
+void JASPControl::_hightlightBorder()
 {
-	JaspTheme* theme = JaspTheme::currentTheme();
-
-	if (!_focusIndicator || !theme) return;
-
-	QColor	borderColor = _defaultBorderColor;
-
-	if (hasError())				borderColor = theme->controlErrorTextColor();
-	else if (shouldShowFocus())	borderColor = theme->focusBorderColor();
-	else if (hasWarning())		borderColor = theme->controlWarningTextColor();
-	else if (isDependency())	borderColor = theme->dependencyBorderColor();
-
-	float borderWidth = (borderColor == _defaultBorderColor) ? _defaultBorderWidth : theme->jaspControlHighlightWidth();
+	if (!_focusIndicator) return;
 
 	QObject* border = _focusIndicator->property("border").value<QObject*>();
-	if (border)
-	{
-		if (border->property("color").value<QColor>() != borderColor)
-			border->setProperty("color", borderColor);
+	if (!border) return;
 
-		if (!qFuzzyCompare(border->property("width").toFloat(), borderWidth))
-		{
-			if (!_form || !_form->initialized() || qFuzzyCompare(borderWidth, _defaultBorderWidth))
-			{
-				_borderAnimation.stop();
-				border->setProperty("width", borderWidth); // No animation when coming back to normal.
-			}
-			else
-			{
-				_borderAnimation.setTargetObject(border);
-				_borderAnimation.setPropertyName("width");
-				_borderAnimation.setDuration(800);
-				_borderAnimation.setEasingCurve(QEasingCurve::OutElastic);
-				_borderAnimation.setEndValue(borderWidth);
-				_borderAnimation.start();
-			}
-		}
+	QColor	targetBorderColor = _defaultBorderColor,
+			currentBorderColor = border->property("color").value<QColor>();
+
+	JaspTheme* theme = JaspTheme::currentTheme();
+	if (hasError())				targetBorderColor = theme->controlErrorTextColor();
+	else if (hasWarning())		targetBorderColor = theme->controlWarningTextColor();
+	else if (isDependency())	targetBorderColor = theme->dependencyBorderColor();
+	else if (hasActiveFocus() && focusOnTab() && (!_innerControl || _innerControl->hasActiveFocus()))  targetBorderColor = theme->focusBorderColor();
+
+	if (currentBorderColor != targetBorderColor)
+		border->setProperty("color", targetBorderColor);
+
+	float	targetBorderWidth = (targetBorderColor == _defaultBorderColor) ? _defaultBorderWidth : theme->jaspControlHighlightWidth(),
+			currentBorderWidth = border->property("width").toFloat();
+
+	if (!qFuzzyCompare(currentBorderWidth, targetBorderWidth))
+	{
+		_borderAnimation.stop();
+		if (qFuzzyCompare(targetBorderWidth, _defaultBorderWidth))
+			border->setProperty("width", targetBorderWidth); // No animation when coming back to normal.
 		else
 		{
-			_borderAnimation.stop();
-			border->setProperty("width", borderWidth); // just to be sure..
+			_borderAnimation.setTargetObject(border);
+			_borderAnimation.setPropertyName("width");
+			_borderAnimation.setDuration(800);
+			_borderAnimation.setEasingCurve(QEasingCurve::OutElastic);
+			_borderAnimation.setEndValue(targetBorderWidth);
+			_borderAnimation.start();
 		}
 	}
 }
@@ -488,13 +488,15 @@ bool JASPControl::checkOptionName(const QString &name)
 	if (!isBound() && name.isEmpty()) return true;
 
 	// If a control is bound, it must have a name.
-	if (isBound() && name.isEmpty())
+	if (isBound())
 	{
 		QString label = humanFriendlyLabel();
 
-		if (!label.isEmpty())	addControlError(tr("Control with label '%1' has no name").arg(label));
-		else					addControlError(tr("A control has no name"));
-
+		if (name.isEmpty())
+		{
+			if (!label.isEmpty())	addControlError(tr("Control with label '%1' has no name").arg(label));
+			else					addControlError(tr("A control has no name"));
+		}
 		return false;
 	}
 
@@ -549,93 +551,78 @@ QString JASPControl::ControlTypeToFriendlyString(ControlType controlType)
 	}
 }
 
-QString JASPControl::helpMD(SetConst & markdowned, int howDeep, bool asList) const
+bool JASPControl::hasInfo() const
 {
-	if(!isEnabled())
-		return "";
+	if(!info().isEmpty()) return true;
 
-	markdowned.insert(this);
-		
-	Log::log() << "Generating markdown for control by name '" << name() << "', title '" << title() << "' and type: '" << JASPControl::ControlTypeToFriendlyString(controlType()) << "'.\n";
+	for (JASPControl* control : getChildJASPControls(_childControlsArea ? _childControlsArea : this))
+		if (control->hasInfo()) return true;
 
-	bool shouldChildrenBeAList;
+	return false;
+}
 
-	switch(controlType())
+bool JASPControl::printLabelMD(QStringList& md, int depth) const
+{
+	QString label = (infoLabel().isEmpty() ? title() : infoLabel()).trimmed();
+	if(label.isEmpty() && !infoAddControlType())
+		return false;
+
+	// Print the label as a header, in italic or in bold
+	if (infoLabelIsHeader())			md << "<h" << QString::number(depth + 2) << ">";
+	else if	(infoLabelItalic())			md << "*";
+	else								md << "**";
+
+	if (infoAddControlType())			md << (friendlyName() + (!label.isEmpty() ? " - " : ""));
+
+	md << label;
+
+	if (infoLabelIsHeader())			md << "</h" << QString::number(depth + 2) << ">\n";
+	else
 	{
-	case ControlType::GroupBox:
-	case ControlType::ComboBox:
-	case ControlType::RadioButtonGroup:
-	case ControlType::VariablesForm:
-		shouldChildrenBeAList = true;
-		break;
-
-	default:
-		shouldChildrenBeAList = false;
-		break;
+		md << (infoLabelItalic() ? "*" : "**");
+		if (!info().isEmpty() && !label.endsWith(":")) // Add ':' when necessary
+			md << ":";
+		md << " ";
 	}
 
-	if(controlType() == ControlType::Expander)
-		howDeep = 1; //When within a section we can go back to bigger titles. Together with howDeep++ right below here this ends up as default 2
+	return true;
+}
 
-	howDeep++;
-	QStringList markdown, childMDs;
-
-	//First we determine if we have children, and if so if they contain anything.
-	QList<JASPControl*> children =  getChildJASPControls(_childControlsArea ? _childControlsArea : this);
-
-	bool aControlThatEncloses = children.size() > 0;
+QString JASPControl::helpMD(int depth) const
+{
+	if (!hasInfo()) return "";
 		
-	Log::log() << "Control encloses #" << children.size() << " children." << std::endl;
+	QStringList childMDs, markdown;
 
-	bool	childrenList = asList || shouldChildrenBeAList || howDeep > 6; //Headers in html only got 6 sizes so below that I guess we just turn it into bulletpoints?
-	int		newDeep = howDeep;
+	for (JASPControl* childControl : getChildJASPControls(_childControlsArea ? _childControlsArea : this, true))
+	{
+		QString childMD = childControl->helpMD(depth + 1);
+		if (!childMD.isEmpty())
+			childMDs.push_back(childMD);
+	}
 
-	if(childrenList && !asList)
-		newDeep = 0;
+	bool hasLabel = printLabelMD(markdown, depth);
+	markdown << info() << "\n";
 
-	for (JASPControl* childControl : children)
-		if(!markdowned.count(childControl))
-			childMDs << childControl->helpMD(markdowned, newDeep, childrenList);
+	if (infoLabelIsHeader() && !info().isEmpty())
+		markdown << "\n"; // Special case when a header has no info (a Section without info eg).
 
-	QString childMD = childMDs.join("");
+	if (childMDs.length() == 1)
+		markdown << QString{depth * 2, ' '} << childMDs[0];
+	else
+	{
+		for (const QString& childMD : childMDs)
+		{
+			markdown << QString{depth * 2, ' '};
+			if (hasLabel)
+				markdown << "- "; // Add bullet list
+			markdown << childMD;
+			if (!hasLabel)
+				markdown << "\n"; // If no bullet list is used, markdown needs an extra '\n' to display a new line
+		}
+	}
 
-	//If we have no info and none of our children have info then we shouldn't be part of the help md
-	if(info() == "" && (!aControlThatEncloses || childMD == ""))
-		return "";
-
-	//If on the other hand we are a simply radiobutton we can just turn it into a list entry
-	if(controlType() == ControlType::RadioButton && !aControlThatEncloses)
-		return "- *" + title() + "*: " + info() + "\n";
-
-	//And otherwise we go the full mile, header + title + info and all followed by whatever children we have
-	if(aControlThatEncloses)
-		markdown << "\n\n";
-
-	if(controlType() == ControlType::Expander)
-		markdown << "\n---\n";
-
-	if(asList)	markdown << QString{howDeep, ' '} + "- ";
-	else		markdown << QString{howDeep, '#' } + " "; // ;)
-
-	markdown << friendlyName();
-
-	if(title() != "")	markdown << " - *" + title() + "*:\n";
-	else				markdown << "\n";
-
-
-	markdown << info() + "\n";
-
-	markdown << childMD;
-
-	if(controlType() == ControlType::Expander)
-		markdown << "\n---\n";
-
-
-	QString md = markdown.join("") + "\n\n";
-		
-	Log::log() << "Generated: '" << md << "'\n";
-		
-	return md;
+	return markdown.join("");;
 }
 
 void JASPControl::setChildControlsArea(QQuickItem * childControlsArea)
@@ -724,6 +711,8 @@ bool JASPControl::hovered() const
 	else
 		return false;
 }
+
+
 
 QString JASPControl::humanFriendlyLabel() const
 {
@@ -848,4 +837,4 @@ void JASPControl::_setInitialized(const Json::Value &value)
 	_initialized = true;
 	_initializedWithValue = (value != Json::nullValue);
 	emit initializedChanged();
-}
+}		

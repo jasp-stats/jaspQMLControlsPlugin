@@ -18,11 +18,9 @@
 
 #include "listmodeltermsavailable.h"
 
-void ListModelTermsAvailable::resetTermsFromSources(bool updateAssigned)
+void ListModelTermsAvailable::resetTermsFromSources()
 {
-	
-	beginResetModel();
-
+	Terms oldTerms = terms();
 	Terms termsAvailable = getSourceTerms();
 	Terms removedTerms, addedTerms;
 	
@@ -34,10 +32,13 @@ void ListModelTermsAvailable::resetTermsFromSources(bool updateAssigned)
 		if (!_allTerms.contains(term))
 			addedTerms.add(term);
 
-	initTerms(termsAvailable);
+	if (oldTerms != termsAvailable)
+	{
+		beginResetModel();
+		initTerms(termsAvailable);
+		endResetModel();
+	}
 
-	endResetModel();
-
-	if (updateAssigned)
+	if (addedTerms.size() > 0 || removedTerms.size() > 0)
 		emit availableTermsReset(addedTerms, removedTerms);
 }

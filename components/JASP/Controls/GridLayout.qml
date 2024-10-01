@@ -26,57 +26,59 @@ QTL.GridLayout
 	rowSpacing:				jaspTheme.rowGridSpacing
 	columnSpacing:			jaspTheme.columnGridSpacing
 	columns:				2
-	QTL.Layout.alignment:		Qt.AlignTop | Qt.AlignLeft
+	QTL.Layout.alignment:	Qt.AlignTop | Qt.AlignLeft
 	
-	property int count									: children.length
-	property bool isJaspDesktop							: (typeof NO_DESKTOP_MODE === "undefined") || !NO_DESKTOP_MODE
-	property bool checkFormOverflowWhenLanguageChanged	: isJaspDesktop
+	property int count				: children.length
 
 	property int _initialColumns	: 2
+	property bool _initialized		: false
 
-	Component.onCompleted: _initialColumns = columns; // Do not bind it!
-
-	Connections
+	Component.onCompleted:
 	{
-		enabled:					checkFormOverflowWhenLanguageChanged
-		target:						preferencesModel
-		function onLanguageCodeChanged()		{ checkFormOverflowTimer.restart(); }
-		function onInterfaceFontChanged(font)	{ checkFormOverflowTimer.restart(); }
+		_initialized = true;
+		_initialColumns = columns; // Do not bind it!
+		_checkColumns()
+	}
+
+	onImplicitWidthChanged:
+	{
+		// Wait a little bit, in case width is not yet updated.
+		checkFormOverflowTimer.restart()
 	}
 
 	Timer
 	{
 		id: checkFormOverflowTimer
 		interval: 50
-		onTriggered: checkFormOverflow()
+		onTriggered: _checkColumns()
 	}
 
-
-	function checkFormOverflow()
+	function _checkColumns()
 	{
-		if ((typeof jaspForm === 'undefined') || !jaspForm) return false;
+		if (!_initialized || (width === 0)) return;
 
-		var startColumns = gridLayout.columns;
-
-		if (gridLayout.columns !== gridLayout._initialColumns)
-			gridLayout.columns = gridLayout._initialColumns;
-
-		var decrementColumns = true;
-
-		while (decrementColumns && gridLayout.columns >= 2)
+		if (width < (implicitWidth - 1) && gridLayout.columns >= 2)
 		{
-			decrementColumns = false;
-			for (var i = 0; i < gridLayout.children.length; i++)
+			if (columnSpacing > (jaspTheme.columnGridSpacing / 2) && ((implicitWidth - width) < (jaspTheme.columnGridSpacing / 2) * (gridLayout.columns - 1)))
 			{
-				var child = gridLayout.children[i];
-				if (child.mapToItem(jaspForm, child.width, 0).x > jaspForm.width)
-					decrementColumns = true;
+				var newMargin = jaspTheme.columnGridSpacing - (implicitWidth - width) / (gridLayout.columns - 1) - 1
+				messages.log("Content of the GridLayout is too large (width: " + width + ", implicitWidth: " + implicitWidth + "): decrease the margin between the columns from " + columnSpacing + " to " + newMargin)
+				columnSpacing = newMargin
 			}
-
-			if (decrementColumns)
+			else
+			{
+				messages.log("Content of the GridLayout is too large (width: " + width + ", implicitWidth: " + implicitWidth + "): decrease the number of columns to " + (gridLayout.columns - 1))
 				gridLayout.columns--;
+			}
 		}
+	}
 
-		return startColumns !== gridLayout.columns;
+	onCountChanged:
+	{
+		for (var i = 0; i < children.length; i++)
+		{
+			if (typeof children[i].alignment !== "undefined")
+				children[i].QT.Layout.alignment = children[i].alignment;
+		}
 	}
 }

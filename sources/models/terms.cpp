@@ -149,13 +149,24 @@ void Terms::add(const Term &term, bool isUnique)
 
 		if (result > 0)
 			_terms.insert(itr, term);
+		else if (result == 0)
+		{
+			itr->setDraggable(term.isDraggable());
+			itr->setType(term.type());
+		}
 		else if (result < 0)
 			_terms.push_back(term);
 	}
 	else
 	{
-		if ( ! contains(term))
+		int i = indexOf(term);
+		if (i < 0)
 			_terms.push_back(term);
+		else
+		{
+			_terms.at(i).setDraggable(term.isDraggable());
+			_terms.at(i).setType(term.type());
+		}
 	}
 }
 
@@ -206,6 +217,11 @@ const Term& Terms::at(size_t index) const
 	return _terms.at(index);
 }
 
+Term &Terms::at(size_t index)
+{
+	return _terms.at(index);
+}
+
 bool Terms::contains(const Term &term) const
 {
 	return std::find(_terms.begin(), _terms.end(), term) != _terms.end();
@@ -228,6 +244,16 @@ int Terms::indexOf(const QString &component) const
 
 	return -1;
 }
+
+int Terms::indexOf(const Term &term) const
+{
+	auto it = std::find(_terms.begin(), _terms.end(), term);
+	if (it == _terms.end())
+		return -1;
+	else
+		return it - _terms.begin();
+}
+
 
 bool Terms::contains(const QString & component)
 {
@@ -310,7 +336,7 @@ Terms Terms::sortComponents(const Terms &terms) const
 Terms Terms::crossCombinations() const
 {
 	if (_terms.size() <= 1)
-		return Terms(asVector());
+		return *this;
 
 	Terms t;
 
@@ -325,10 +351,16 @@ Terms Terms::crossCombinations() const
 
 			for (uint i = 0; i < _terms.size(); i++) {
 				if (!v[i])
-					combination.push_back(_terms.at(i).asString());
+				{
+					vector<string> components = _terms.at(i).scomponents();
+					combination.insert(combination.end(), components.begin(), components.end());
+				}
 			}
 
-			t.add(Term(combination));
+			if (combination.size() == 1)
+				t.add(at(indexOf(combination[0])));
+			else
+				t.add(Term(combination));
 
 		} while (std::next_permutation(v.begin(), v.end()));
 	}
@@ -351,10 +383,16 @@ Terms Terms::wayCombinations(int ways) const
 
 			for (uint i = 0; i < _terms.size(); ++i) {
 				if (!v[i])
-					combination.push_back(_terms.at(i).asString());
+				{
+					vector<string> components = _terms.at(i).scomponents();
+					combination.insert(combination.end(), components.begin(), components.end());
+				}
 			}
 
-			t.add(Term(combination));
+			if (combination.size() == 1)
+				t.add(at(indexOf(combination[0])));
+			else
+				t.add(Term(combination));
 
 		} while (std::next_permutation(v.begin(), v.end()));
 	}
@@ -450,6 +488,41 @@ bool Terms::operator!=(const Terms &terms) const
 {
 	return _terms != terms._terms;
 }
+
+bool Terms::strictlyEquals(const Terms &terms) const
+{
+	bool isEqual = _terms == terms._terms;
+
+	for (size_t i = 0; isEqual && (i < _terms.size()); i++)
+		isEqual = _terms.at(i).isDraggable() == terms._terms.at(i).isDraggable();
+
+	return isEqual;
+}
+
+void Terms::setDraggable(bool draggable)
+{
+	for (Term& term : _terms)
+		term.setDraggable(draggable);
+}
+
+void Terms::setUndraggableTerms(const Terms& undraggableTerms)
+{
+	std::vector<Term> newTerms = undraggableTerms._terms;
+	for (Term& term : newTerms)
+		term.setDraggable(false);
+
+	// Then add only the draggabled terms that are not in undraggableTerms and that are draggable
+	// All undraggable terms that are not in undraggableTerms will be then automatically removed.
+	for (Term term : _terms)
+	{
+		if (term.isDraggable() && !undraggableTerms.contains(term))
+			newTerms.push_back(term);
+	}
+
+	_terms = newTerms;
+}
+
+
 
 void Terms::set(const QByteArray & array, bool isUnique)
 {
@@ -686,6 +759,16 @@ Terms::const_iterator Terms::begin() const
 }
 
 Terms::const_iterator Terms::end() const
+{
+	return _terms.end();
+}
+
+Terms::iterator Terms::begin()
+{
+	return _terms.begin();
+}
+
+Terms::iterator Terms::end()
 {
 	return _terms.end();
 }

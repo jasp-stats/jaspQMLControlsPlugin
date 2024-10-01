@@ -31,7 +31,10 @@ class ExpanderButtonBase : public JASPControl
 public:
 	explicit ExpanderButtonBase(QQuickItem *parent = nullptr);
 
-	void	setUp() override;
+	void	setUp()							override;
+	QString helpMD(int depth)		const	override;
+
+	bool infoLabelIsHeader()		const	override	{ return true; }
 };
 
 #endif // EXPANDERBUTTONBASE_H

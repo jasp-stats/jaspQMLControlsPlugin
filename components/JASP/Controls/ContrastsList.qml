@@ -24,11 +24,16 @@ Item
 {
 	id					: contrastsList
 	implicitHeight		: itemContrastVariables.height + (itemCustomContrasts.visible ? itemCustomContrasts.height : 0)
-	height				: implicitHeight
-	implicitWidth		: parent.width
-	width				: implicitWidth
-	L.Layout.columnSpan	: parent.columns
+	implicitWidth		: jaspForm.width
 
+	property int preferredHeight:	implicitHeight
+	property int preferredWidth:	jaspForm.width
+
+	L.Layout.columnSpan			: parent.columns
+	L.Layout.preferredWidth		: preferredWidth
+	L.Layout.preferredHeight	: preferredHeight
+
+	property string	factorsSourceName		: "fixedFactors"
 	property alias	source					: itemContrastVariables.source
 	property string	repeatedMeasureFactors	: "repeatedMeasuresFactors"
 	property bool	addCustom				: true
@@ -60,7 +65,7 @@ Item
 	{
 		id				: itemContrastVariables
 		title			: qsTr("Factors")
-		source			: "fixedFactors"
+		source			: factorsSourceName
 		name			: "contrasts"
 		listViewType	: JASP.AssignedVariables
 		height			: 200 * preferencesModel.uiScale
@@ -72,7 +77,6 @@ Item
 			name		: "contrast"
 			values		: contrastsList.contrastValues
 		}
-
 	}
 
 	ComponentsList
@@ -81,6 +85,7 @@ Item
 		name				: "customContrasts"
 		anchors.top			: itemContrastVariables.bottom
 		anchors.topMargin	: jaspTheme.rowSpacing
+		width				: jaspForm.width
 		visible				: count > 0
 		source				: [ { name: "contrasts", condition: "contrast == 'custom'" }]
 
@@ -94,12 +99,11 @@ Item
 
 			CustomContrastsTableView
 			{
-				preferredWidth	: itemCustomContrasts.width
+				preferredWidth	: jaspForm.width - 2 * jaspTheme.contentMargin
 				name			: "values"
 				itemType		: JASP.Double
 				minimum			: -Infinity
 				decimals		: 3
-				//buttonsInRow	: false
 				columnName		: rowValue
 				factorsSource	: contrastsList.repeatedMeasureFactors
 			}

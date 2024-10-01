@@ -193,11 +193,11 @@ AnalysisForm
 				label:				qsTr("Generate Wrapper")
 				onClicked:			popup.open()
 
-				QTC.Popup
+				Popup
 				{
 					id: popup
 
-					parent:				QTC.Overlay.overlay
+					parent:				Overlay.overlay
 					anchors.centerIn:	parent
 
 					width:	400  * jaspTheme.uiScale
@@ -239,8 +239,10 @@ AnalysisForm
 				width:				parent.width
 				height:				visible ? 100 * preferencesModel.uiScale : 0
 				text:				form.rSyntaxText
+				textType:           JASPControl.TextTypeRcode
 				isBound:			false
 				onApplyRequest:		form.sendRSyntax(text)
+				autoCheckSyntax:	false
 
 				onInitializedChanged: if (preferencesModel.showRSyntax) control.forceActiveFocus() // If the textarea has already some large text, then it does not display it if it does not get temporarly the focus...
 			}

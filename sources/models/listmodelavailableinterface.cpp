@@ -19,6 +19,8 @@
 #include "listmodelavailableinterface.h"
 #include "listmodelassignedinterface.h"
 #include "controls/jasplistcontrol.h"
+#include "controls/sourceitem.h"
+
 #include "log.h"
 
 void ListModelAvailableInterface::initTerms(const Terms &terms, const RowControlsValues&, bool)
@@ -60,34 +62,19 @@ void ListModelAvailableInterface::sortItems(SortType sortType)
 
 	case SortType::SortByName:
 	{
-		QList<QString> sortedTerms = _allSortedTerms.asQList();
-		std::sort(sortedTerms.begin(), sortedTerms.end(),
-				  [&](const QString& a, const QString& b) {
-						return a.compare(b, Qt::CaseInsensitive) < 0;
+		std::sort(_allSortedTerms.begin(), _allSortedTerms.end(),
+				  [&](const Term& a, const Term& b) {
+						return a.asQString().compare(b.asQString(), Qt::CaseInsensitive) < 0;
 					});
-		_allSortedTerms = Terms(sortedTerms);
 		break;
 	}
 
 	case SortType::SortByType:
 	{
-		QList<QString>				termsList = _allSortedTerms.asQList();
-		QList<QPair<QString, int> > termsTypeList;
-
-		for (const QString& term : termsList)
-			termsTypeList.push_back(QPair<QString, int>(term, requestInfo(VariableInfo::VariableType, term).toInt()));
-
-		std::sort(termsTypeList.begin(), termsTypeList.end(),
-				  [&](const QPair<QString, int>& a, const QPair<QString, int>& b) {
-						return a.second - b.second > 0;
+		std::sort(_allSortedTerms.begin(), _allSortedTerms.end(),
+				  [&](const Term& a, const Term& b) {
+						return int(a.type()) - int(b.type()) > 0;
 					});
-
-		QList<QString> sortedTerms;
-
-		for (const auto& term : termsTypeList)
-			sortedTerms.push_back(term.first);
-
-		_allSortedTerms = Terms(sortedTerms);
 		break;
 	}
 
@@ -100,6 +87,21 @@ void ListModelAvailableInterface::sortItems(SortType sortType)
 	_setTerms(orgTerms); // This will reorder the terms
 
 	endResetModel();
+}
+
+Terms ListModelAvailableInterface::addTerms(const Terms &terms, int dropItemIndex, const RowControlsValues &rowValues)
+{
+	if (listView()->sourceItems().length() > 0 && listView()->sourceItems()[0]->isAnalysisDataSet())
+	{
+		// Reset the real types to the terms, in case they were changed.
+		Terms realTypesTerms = terms;
+		for (Term& term : realTypesTerms)
+			term.setType(getVariableRealType(term.asQString()));
+		return ListModelDraggable::addTerms(realTypesTerms, dropItemIndex, rowValues);
+
+	}
+
+	return ListModelDraggable::addTerms(terms, dropItemIndex, rowValues);
 }
 
 void ListModelAvailableInterface::sourceTermsReset()
@@ -147,12 +149,12 @@ void ListModelAvailableInterface::sourceColumnsChanged(QStringList columns)
 		emit columnsChanged(changedColumns);
 }
 
-int ListModelAvailableInterface::sourceColumnTypeChanged(QString name)
+int ListModelAvailableInterface::sourceColumnTypeChanged(Term term)
 {
-	int index = ListModelDraggable::sourceColumnTypeChanged(name);
+	int index = ListModelDraggable::sourceColumnTypeChanged(term);
 
-	if (index == -1 && _allTerms.contains(name))
-		emit columnTypeChanged(name);
+	if (index == -1 && _allTerms.contains(term))
+		emit columnTypeChanged(term);
 
 	return index;
 }
@@ -177,20 +179,27 @@ bool ListModelAvailableInterface::sourceLabelsReordered(QString columnName)
 	return change;
 }
 
+
 void ListModelAvailableInterface::removeTermsInAssignedList()
 {
-	beginResetModel();
-	
-	Terms newTerms = _allSortedTerms;
-	
-	for (ListModelAssignedInterface* modelAssign : assignedModel())
+	if (keepTerms())
+		return;
+
+	Terms	oldTerms = terms(),
+			newTerms = _allSortedTerms;
+
+	for (ListModelAssignedInterface* modelAssign : assignedModels())
 	{
 		Terms assignedTerms = modelAssign->terms();
 		if (assignedTerms.discardWhatIsntTheseTerms(_allSortedTerms))
 			modelAssign->initTerms(assignedTerms, RowControlsValues(), true); // initTerms call removeTermsInAssignedList
-		if (!modelAssign->copyTermsWhenDropped())
-			newTerms.remove(assignedTerms);
+		newTerms.remove(assignedTerms);
 	}
+
+	if (oldTerms == newTerms)
+		return;
+
+	beginResetModel();
 
 	_setTerms(newTerms, _allSortedTerms);
 	
@@ -201,19 +210,19 @@ void ListModelAvailableInterface::addAssignedModel(ListModelAssignedInterface *a
 {
 	_assignedModels.push_back(assignedModel);
 
-	connect(assignedModel,	&ListModelAssignedInterface::destroyed,				this,						&ListModelAvailableInterface::removeAssignedModel		);
 	connect(this,			&ListModelAvailableInterface::availableTermsReset,	assignedModel,				&ListModelAssignedInterface::availableTermsResetHandler	);
 	connect(this,			&ListModelAvailableInterface::namesChanged,			assignedModel,				&ListModelAssignedInterface::sourceNamesChanged			);
 	connect(this,			&ListModelAvailableInterface::columnsChanged,		assignedModel,				&ListModelAssignedInterface::sourceColumnsChanged		);
 	connect(this,			&ListModelAvailableInterface::columnTypeChanged,	assignedModel,				&ListModelAssignedInterface::sourceColumnTypeChanged	);
 	connect(this,			&ListModelAvailableInterface::labelsChanged,		assignedModel,				&ListModelAssignedInterface::sourceLabelsChanged		);
 	connect(this,			&ListModelAvailableInterface::labelsReordered,		assignedModel,				&ListModelAssignedInterface::sourceLabelsReordered		);
+	connect(this,			&ListModelAvailableInterface::filterChanged,		assignedModel,				&ListModelAssignedInterface::filterChanged				);
 	connect(listView(),		&JASPListControl::containsVariablesChanged,			assignedModel->listView(),	&JASPListControl::setContainsVariables					);
 	connect(listView(),		&JASPListControl::containsInteractionsChanged,		assignedModel->listView(),	&JASPListControl::setContainsInteractions				);
 }
 
-void ListModelAvailableInterface::removeAssignedModel(ListModelDraggable* assignedModel)
+void ListModelAvailableInterface::removeAssignedModel(ListModelAssignedInterface *assignedModel)
 {
-	_assignedModels.removeAll(qobject_cast<ListModelAssignedInterface*>(assignedModel));
+	_assignedModels.removeAll(assignedModel);
 }
 

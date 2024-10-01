@@ -136,6 +136,12 @@ void JASPListControl::setContainsInteractions()
 	}
 }
 
+void JASPListControl::termsChangedHandler()
+{
+	setColumnsTypes(model()->termsTypes());
+	setColumnsNames(model()->terms().asQList());
+}
+
 void JASPListControl::_termsChangedHandler() 
 {
 	termsChangedHandler();
@@ -244,16 +250,9 @@ QString JASPListControl::getSourceType(QString name)
 	return model() ? model()->getItemType(name) : "";
 }
 
-bool JASPListControl::areTypesAllowed(QStringList types)
+columnType JASPListControl::getVariableType(const QString &name)
 {
-	bool result = true;
-
-	if (!_variableTypesAllowed.empty())
-		for (const QString& type : types)
-			if (!_variableTypesAllowed.contains(columnTypeFromQString(type)))
-				result = false;
-
-	return result;
+	return model()->getVariableType(name);
 }
 
 int JASPListControl::count()
@@ -279,10 +278,27 @@ std::vector<std::string> JASPListControl::usedVariables() const
 	else												return {};
 }
 
+columnTypeVec JASPListControl::valueTypes() const
+{
+	columnTypeVec types;
+
+	for (const Term& term : model()->terms())
+		types.push_back(term.type());
+
+	return types;
+}
+
 void JASPListControl::sourceChangedHandler()
 {
 	if (!model())	return;
 
 	_setupSources();
 	model()->sourceTermsReset();
+}
+
+void JASPListControl::_setInitialized(const Json::Value &value)
+{
+	if (model() && hasSource()) model()->sourceTermsReset();
+
+	JASPControl::_setInitialized(value);
 }
